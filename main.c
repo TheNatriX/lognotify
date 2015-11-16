@@ -21,7 +21,7 @@ int main( int argc, char *argv[] )
 {
 	print_help( (const char*) basename( argv[0] ) );
 
-
+	watch( "/home/natrix/test" );
 
 	/* test */
 	prepare_environment();

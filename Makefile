@@ -2,11 +2,12 @@
 CC=gcc
 CFLAGS=-O2 -Wall
 
-SRC=main.c xclient.c
+SRC=main.c xclient.c inotify.c
+OBJ=lognotify
 
 all:
-	$(CC) $(CFLAGS) -o lognotify $(SRC) -lX11
+	$(CC) $(CFLAGS) -o $(OBJ) $(SRC) -lX11
 
 clean:
-	rm lognotify
+	rm -f $(OBJ)
 
