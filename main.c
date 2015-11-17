@@ -17,7 +17,7 @@ int main( int argc, char *argv[] )
 {
 	print_help( (const char*) basename( argv[0] ) );
 
-	watch( "/home/natrix/test" );
+	watch( "/home/natrix" );
 
 	/* test */
 	prepare_environment();
