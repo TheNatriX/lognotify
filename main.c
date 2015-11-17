@@ -1,8 +1,6 @@
 #include <stdio.h>
 
-#define VERSION		"v0.1"
-#define MAINTAINER	"cristian.ionita@gmail.com"
-
+#define VERSION		"v0.0"
 
 
 void print_help( const char *this )
@@ -10,11 +8,9 @@ void print_help( const char *this )
 	printf(
 		"\n"
 		"\n"
-		"	lognotify %s\n"
-		"	%s %s	%s\n"
+		"	lognotify	%s	%s %s\n"
 		"\n",
-		VERSION,
-		__DATE__, __TIME__, MAINTAINER
+		VERSION, __DATE__, __TIME__
 	);	
 }
 int main( int argc, char *argv[] )
