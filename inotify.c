@@ -123,7 +123,7 @@ char *wait_for_changes( char *s, size_t sz )
 
 	/*
 	 * instead of returning nothing here, we can just call again
-	 * this functon and return the file name.
+	 * this function and return the file name.
 	 */
 	return wait_for_changes( s, sz );
 }
