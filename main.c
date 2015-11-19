@@ -20,12 +20,10 @@ int main( int argc, char *argv[] )
 	print_help( (const char*) basename( argv[0] ) );
 
 	char *name;
-	char *files[] = { "/home/natrix/test", "/home/natrix/test2", 0 };
+	char *files[] = { "/home/natrix/test", "/home/natrix/test2", "nosuchfile", 0 };
 	watch_files( files );
 	for(;;) {
-		name = wait_for_changes();
-		if( name )
-			puts( name );
+		puts( wait_for_changes() );
 	}
 
 	/* test */
