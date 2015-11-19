@@ -34,7 +34,7 @@ int watch_files( const char *files[] )
 		file_num++;
 
 	/*
-	 * alloc memory for enough files, no need to be freed soon.
+	 * alloc memory for counted files, no need to be freed soon.
 	 */
 	ifiles = (struct ifile*) malloc( sizeof( struct ifile ) * file_num );
 	if( !ifiles ) {
@@ -42,6 +42,9 @@ int watch_files( const char *files[] )
 		return 0;
 	}
 
+	/*
+	 * initiate inotify.
+	 */
 	inotify_fd = inotify_init();
 	if( inotify_fd == -1 ) {
 		perror( "Cannot initiate inotify" );
@@ -53,13 +56,19 @@ int watch_files( const char *files[] )
 	 */
 	file_num = 0;
 	while( files[file_num] ) {
+
 		ifiles[file_num].wd = inotify_add_watch( inotify_fd,
 			files[file_num], IN_CLOSE_WRITE );
+
 		if( ifiles[file_num].wd == -1 ) {
 			perror( "Cannot add inotify watch" );
 			return 0;
 		}
-		strcpy( ifiles[file_num].name, files[file_num] ); 
+
+		/* TODO: maybe char name[256] must be dyn. allocated */
+		strncpy( ifiles[file_num].name, files[file_num],
+			sizeof( ifiles[file_num].name ) );
+
 		file_num++;
 	}
 
@@ -71,7 +80,7 @@ int watch_files( const char *files[] )
  * returns the name of file just modified, NULL on error.
  * otherwise it hangs, waiting for file events.
  */
-char *wait_for_changes( char *s )
+char *wait_for_changes( char *s, size_t sz )
 {
 	static int i = 0;
 	static ssize_t recv_len = 0;
@@ -81,22 +90,20 @@ char *wait_for_changes( char *s )
 	if( i < recv_len ) {
 		ievent = (struct inotify_event*) &ibuffer[i];
 		i += EVENT_SIZE + ievent->len;
-		if( ievent->name ) {
+		/* TODO: here can be a single FOR loop */
+		if( ievent->name[0] ) {
 			for( x = 0; x < file_num; x++ ) {
 				if( ifiles[x].wd == ievent->wd ) {
-					if( s ) {
-						/* TODO: secure here*/
-						sprintf( s, "%s/%s", ifiles[x].name, ievent->name );
-					}
-					memset( ievent, 0, EVENT_SIZE );
+					snprintf( s, sz, "%s/%s",
+						ifiles[x].name,	ievent->name );
+					ievent->name[0] = 0;
 				}
 			}
 		}
 		else {
 			for( x = 0; x < file_num; x++ )
-				if( ievent->wd == ifiles[x].wd ) {
-					 //ifiles[x].name;
-				}
+				if( ievent->wd == ifiles[x].wd )
+					 strncpy( s, ifiles[x].name, sz );
 		}
 
 		return s;
@@ -114,6 +121,6 @@ char *wait_for_changes( char *s )
 	 * instead of returning nothing here, we can just call again
 	 * this functon and return the file name.
 	 */
-	return wait_for_changes( s );
+	return wait_for_changes( s, sz );
 }
 

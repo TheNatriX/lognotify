@@ -3,7 +3,7 @@
 
 #define VERSION		"v0.0"
 
-char *wait_for_changes( char *s );
+extern char *wait_for_changes( char *s, size_t sz );
 
 void print_help( const char *this )
 {
@@ -21,10 +21,10 @@ int main( int argc, char *argv[] )
 	print_help( (const char*) basename( argv[0] ) );
 
 	char *name;
-	char *files[] = { "/home/natrix/test", "/home/natrix/test2", "/tmp", "nosuchfile", 0 };
+	char *files[] = { "/home/natrix/test", "/home/natrix/test2", "/tmp", "/home/natrix/", "nosuchfile", 0 };
 	watch_files( files );
 	for(;;) {
-		puts( wait_for_changes( buff ) );
+		puts( wait_for_changes( buff, sizeof( buff ) ) );
 	}
 
 	/* test */
