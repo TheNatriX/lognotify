@@ -3,6 +3,7 @@
 
 #define VERSION		"v0.0"
 
+char *wait_for_changes( void );
 
 void print_help( const char *this )
 {
@@ -18,9 +19,14 @@ int main( int argc, char *argv[] )
 {
 	print_help( (const char*) basename( argv[0] ) );
 
-	char *files[] = { "/var/log/messages", "/var/log/syslog", "/home/natrix/test", 0 };
+	char *name;
+	char *files[] = { "/home/natrix/test", "/home/natrix/test2", 0 };
 	watch_files( files );
-	wait_events();
+	for(;;) {
+		name = wait_for_changes();
+		if( name )
+			puts( name );
+	}
 
 	/* test */
 //	prepare_environment();

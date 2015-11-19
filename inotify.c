@@ -49,38 +49,24 @@ int watch_files( const char *files[] )
 }
 
 
-static	int i,x;
-static	size_t recv_len;
+static	int i = 0;
+static	size_t recv_len = 0;
 static	struct inotify_event *ievent;
 
 char *wait_for_changes( void )
 {
+	int x;
 
-
-
-
-
-
-
-
-
-
-
-
-/*
-	i = 0;
-	while( i < recv_len ) {
+	if( i < recv_len ) {
 		ievent = (struct inotify_event*) &ibuffer[i];
-
-		for( x = 0; x < file_num; x++ ) {
+		i += EVENT_SIZE + ievent->len;
+		for( x = 0; x < file_num; x++ )
 			if( ievent->wd == ifiles[x].wd )
 				return ifiles[x].name;
-		}
-
-		i += EVENT_SIZE + ievent->len;		
 	}
 	recv_len = read( inotify_fd, ibuffer, sizeof( ibuffer ) );
-*/
+	i = 0;
+
 	return 0;
 }
 
