@@ -2,7 +2,7 @@
 CC=gcc
 CFLAGS=-O2 -Wall -g3
 
-SRC=main.c xclient.c inotify.c
+SRC=main.c xclient.c inotify.c daemon.c
 OBJ=lognotify
 
 all:

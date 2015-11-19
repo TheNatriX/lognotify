@@ -8,18 +8,20 @@
 
 
 #define EVENT_SIZE	( sizeof(struct inotify_event) )
-#define EVENT_BUF_LEN	( 1024 * ( EVENT_SIZE + 16 ) )
+#define EVENT_BUF_LEN	( 1024  *  ( EVENT_SIZE + 16 ) )
 
 
-static	int inotify_fd;
-static	char ibuffer[EVENT_BUF_LEN];
-static	int file_num;
+static	int	file_num;
+static	int	inotify_fd;
+static	char	ibuffer[EVENT_BUF_LEN];
 
 
-static	struct ifile {
-	char name[256];
-	int wd;
-}	*ifiles;
+static	struct	ifile
+{
+	char	name[256];	/*	name of log file	*/
+	int	wd;		/*	watch descriptor	*/
+
+} *ifiles;
 
 
 /*
@@ -61,7 +63,9 @@ int watch_files( const char *files[] )
 			files[file_num], IN_CLOSE_WRITE );
 
 		if( ifiles[file_num].wd == -1 ) {
-			perror( "Cannot add inotify watch" );
+			fprintf( stderr, "Cannot watch \"%s",
+				files[file_num] );
+			perror( "\"" );
 			return 0;
 		}
 
