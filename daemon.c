@@ -1,24 +1,23 @@
 #include <sys/types.h>
+#include <stdio.h>
 
-extern char *wait_for_changes( char *, size_t );
 
-struct logfile
+struct  logfile
 {
-	char	name[256];
-	off_t	offset;
+        int     wd;             /*      watch descriptor        */
+        off_t   offset;         /*      last offset address     */
+        char    name[256];      /*      name of log file        */
 
-} *p_logfile;
+} *j;
 
+struct logfile * wait_for_changes( void );
 
 int daemon( void )
 {
-	char buff[1024];
-
 	for(;;) {
-		if( wait_for_changes( buff, sizeof( buff ) ) ) {
-			puts( buff );
-		}
-		
+	j = wait_for_changes();
+	if( j )
+		puts( j->name );
 	}
 	
 	return 0;

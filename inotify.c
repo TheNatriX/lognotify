@@ -16,12 +16,14 @@ static	int	inotify_fd;
 static	char	ibuffer[EVENT_BUF_LEN];
 
 
-static	struct	ifile
+/* TODO: maybe this struct must be placed in a general header. */
+struct	logfile
 {
-	char	name[256];	/*	name of log file	*/
 	int	wd;		/*	watch descriptor	*/
+	off_t	offset;		/*	last offset address	*/
+	char	name[256];	/*	name of log file	*/
 
-} *ifiles;
+} *p_logfile;
 
 
 /*
@@ -36,10 +38,12 @@ int watch_files( const char *files[] )
 		file_num++;
 
 	/*
-	 * alloc memory for counted files, no need to be freed soon.
+	 * allocate memory for counted files, no need to be freed soon.
 	 */
-	ifiles = (struct ifile*) malloc( sizeof( struct ifile ) * file_num );
-	if( !ifiles ) {
+	p_logfile = (struct logfile*) malloc(
+		sizeof( struct logfile ) * file_num );
+
+	if( !p_logfile ) {
 		perror( "Cannot allocate memory" );
 		return 0;
 	}
@@ -59,10 +63,10 @@ int watch_files( const char *files[] )
 	file_num = 0;
 	while( files[file_num] ) {
 
-		ifiles[file_num].wd = inotify_add_watch( inotify_fd,
+		p_logfile[file_num].wd = inotify_add_watch( inotify_fd,
 			files[file_num], IN_CLOSE_WRITE );
 
-		if( ifiles[file_num].wd == -1 ) {
+		if( p_logfile[file_num].wd == -1 ) {
 			fprintf( stderr, "Cannot watch \"%s",
 				files[file_num] );
 			perror( "\"" );
@@ -70,8 +74,8 @@ int watch_files( const char *files[] )
 		}
 
 		/* TODO: maybe char name[256] must be dyn. allocated */
-		strncpy( ifiles[file_num].name, files[file_num],
-			sizeof( ifiles[file_num].name ) );
+		strncpy( p_logfile[file_num].name, files[file_num],
+			sizeof( p_logfile[file_num].name ) );
 
 		file_num++;
 	}
@@ -81,10 +85,10 @@ int watch_files( const char *files[] )
 
 
 /*
- * returns the name of file just modified, NULL on error.
+ * returns the struct of file just modified, NULL on error.
  * otherwise it hangs, waiting for file events.
  */
-char *wait_for_changes( char *s, size_t sz )
+struct logfile* wait_for_changes( void )
 {
 	static int i = 0;
 	static ssize_t recv_len = 0;
@@ -94,37 +98,30 @@ char *wait_for_changes( char *s, size_t sz )
 	if( i < recv_len ) {
 		ievent = (struct inotify_event*) &ibuffer[i];
 		i += EVENT_SIZE + ievent->len;
-		/* TODO: here can be a single FOR loop */
-		if( ievent->name[0] ) {
-			for( x = 0; x < file_num; x++ ) {
-				if( ifiles[x].wd == ievent->wd ) {
-					snprintf( s, sz, "%s/%s",
-						ifiles[x].name,	ievent->name );
-					ievent->name[0] = 0;
-				}
-			}
-		}
-		else {
-			for( x = 0; x < file_num; x++ )
-				if( ievent->wd == ifiles[x].wd )
-					 strncpy( s, ifiles[x].name, sz );
-		}
 
-		return s;
+		/*
+		 * check against each watch descriptor to find out
+		 * what file was modified.
+		 *
+		 * return a pointer to the mallocated structure.
+		 */
+		for( x = 0; x < file_num; x++ )
+			if( ievent->wd == p_logfile[x].wd )
+				return &p_logfile[x];
 	}
 
 	/* wait for events */
 	recv_len = read( inotify_fd, ibuffer, sizeof( ibuffer ) );
 	if( recv_len == -1 ) {
 		perror( "Cannot read from inotify file descriptor" );
-		return NULL;
+		return 0;
 	}
 	i = 0;
 
 	/*
 	 * instead of returning nothing here, we can just call again
-	 * this function and return the file name.
+	 * this function and return a valid response.
 	 */
-	return wait_for_changes( s, sz );
+	return wait_for_changes();
 }
 
