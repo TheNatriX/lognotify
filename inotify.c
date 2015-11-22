@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <sys/inotify.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 
 #define EVENT_SIZE	( sizeof(struct inotify_event) )
@@ -32,6 +33,8 @@ struct	logfile
  */
 int watch_files( const char *files[] )
 {
+	struct stat ss;
+
 	/* count files */
 	file_num = 0;
 	while( files[file_num] )
@@ -58,7 +61,7 @@ int watch_files( const char *files[] )
 	}
 
 	/*
-	 * add files to inotify instance.
+	 * add files to inotify instance and get its size as an offset address.
 	 */
 	file_num = 0;
 	while( files[file_num] ) {
@@ -73,6 +76,16 @@ int watch_files( const char *files[] )
 			return 0;
 		}
 
+		/* get its size */
+		if( stat( files[file_num], &ss ) == -1 ) {
+			fprintf( stderr, "Cannot stat file \"%s",
+				files[file_num] );
+			perror( "\"" );
+			return 0;
+		}
+		p_logfile[file_num].offset = ss.st_size;
+
+
 		/* TODO: maybe char name[256] must be dyn. allocated */
 		strncpy( p_logfile[file_num].name, files[file_num],
 			sizeof( p_logfile[file_num].name ) );
@@ -85,7 +98,7 @@ int watch_files( const char *files[] )
 
 
 /*
- * returns the struct of file just modified, NULL on error.
+ * returns a pointer to the right struct of file just modified, NULL on error.
  * otherwise it hangs, waiting for file events.
  */
 struct logfile* wait_for_changes( void )
