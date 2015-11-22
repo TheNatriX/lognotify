@@ -17,9 +17,10 @@ int main( int argc, char *argv[] )
 {
 	print_help( (const char*) basename( argv[0] ) );
 
-	char *files[] = { "/home/natrix/test", "/home/natrix/test2", "/tmp", "nosuchfile", 0 };
+	char *files[] = { "/home/natrix/test", "/home/natrix/test2",
+		"/var/log/messages", "/var/log/syslog", 0 };
 	watch_files( files );
-	daemon();
+	diff_daemon();
 
 	return 0;
 }
