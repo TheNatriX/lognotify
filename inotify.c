@@ -21,7 +21,7 @@ static	char	ibuffer[EVENT_BUF_LEN];
 struct	logfile
 {
 	int	wd;		/*	watch descriptor	*/
-	off_t	offset;		/*	last offset address	*/
+	size_t	size;		/*	last known size		*/
 	char	name[256];	/*	name of log file	*/
 
 } *p_logfile;
@@ -41,7 +41,7 @@ int watch_files( const char *files[] )
 		file_num++;
 
 	/*
-	 * allocate memory for counted files, no need to be freed soon.
+	 * allocate memory for counted files, no need to free it soon.
 	 */
 	p_logfile = (struct logfile*) malloc(
 		sizeof( struct logfile ) * file_num );
@@ -61,13 +61,13 @@ int watch_files( const char *files[] )
 	}
 
 	/*
-	 * add files to inotify instance and get its size as an offset address.
+	 * add files to inotify instance and note theyr current size.
 	 */
 	file_num = 0;
 	while( files[file_num] ) {
 
 		p_logfile[file_num].wd = inotify_add_watch( inotify_fd,
-			files[file_num], IN_CLOSE_WRITE );
+			files[file_num], IN_MODIFY );
 
 		if( p_logfile[file_num].wd == -1 ) {
 			fprintf( stderr, "Cannot watch \"%s",
@@ -83,7 +83,7 @@ int watch_files( const char *files[] )
 			perror( "\"" );
 			return 0;
 		}
-		p_logfile[file_num].offset = ss.st_size;
+		p_logfile[file_num].size = ss.st_size;
 
 
 		/* TODO: maybe char name[256] must be dyn. allocated */
