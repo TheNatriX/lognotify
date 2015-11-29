@@ -17,7 +17,6 @@
 
 static int res_x;
 static int res_y;
-static int text_line;
 
 static Display *display;
 static int screen_num;
@@ -67,23 +66,45 @@ int draw_window( int x, int y, int rows )
 	return 0;
 }
 
-int draw_on_screen( const char **content )
+int draw_on_screen( char *content )
 {
-	char **content_bkp = content;
-	int cnt_len = 0;
+	int txt_lines;
+	int one_line;
+	int pos_px;
 
-	while( *content_bkp ) {
-		cnt_len++;
-		content_bkp++;
+	char *p;
+	char **line_ptr;
+	char **line_ptr_bkp;
+
+	p = content;
+	while( *p ) {
+		if( *p == '\n' )
+			txt_lines++;
+		p++;
 	}
 
+	line_ptr = malloc( txt_lines * sizeof( char * ) );
+	line_ptr_bkp = line_ptr;
 
-	text_line = 0;
-	draw_window( 0, 0, cnt_len );
-	while( *content ) {
-		text_line += TEXT_ROW_PXL;
-		XDrawString( display, w, gc, 10, text_line, *content, strlen( *content ) );
-		content++;
+	p = content;
+	txt_lines = 1;
+	*line_ptr = content;
+	while( ( p = strstr( p, "\n" ) ) ) { 
+		*p = '\0';
+		if( ++p ) {
+			*(++line_ptr) = p;
+			txt_lines++;
+		}
+	}		
+	line_ptr = line_ptr_bkp;
+
+	draw_window( 0, 0, txt_lines );
+
+	for( one_line = 0, pos_px = 0; one_line < txt_lines;
+			one_line++, line_ptr++ ) {
+		pos_px += TEXT_ROW_PXL;
+		XDrawString( display, w, gc, 10, pos_px,
+				*(line_ptr), strlen( *(line_ptr) ) );
 	}
 
 	XFlush( display );
@@ -97,11 +118,14 @@ int draw_on_screen( const char **content )
 //              else
                 if( e.type == ButtonPress ) {
                       XDestroyWindow( display, w ); 
+		      XFlush( display );
 			break;
 		}
 
         }
 
+
+	free( line_ptr_bkp );
 	return 0;
 }
 
