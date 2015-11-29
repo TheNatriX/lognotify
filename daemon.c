@@ -16,15 +16,15 @@ struct  logfile
 } *j;
 
 struct logfile* wait_for_changes( void );
+int draw_on_screen( char *content );
+int prepare_environment( void );
 
 int diff_daemon( void )
 {
 	struct stat ss;
 	int fd;
-	int c, x;
 	ssize_t recv_len;
 	char *buf;
-	char *super_buff[1024];
 
 
 prepare_environment();

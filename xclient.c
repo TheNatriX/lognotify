@@ -68,7 +68,7 @@ int draw_window( int x, int y, int rows )
 
 int draw_on_screen( char *content )
 {
-	int txt_lines;
+	int txt_lines = 0;
 	int one_line;
 	int pos_px;
 
