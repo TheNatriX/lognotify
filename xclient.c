@@ -125,9 +125,11 @@ void handle_x_events( void ) {
 	while( XPending( display ) ) {
 		XNextEvent( display, &xev );
 		if( xev.type == ButtonPress ) {
-			XDestroyWindow( display, w );
-			XFlush( display );
-			w = 0;
+			if( w ) {
+				XDestroyWindow( display, w );
+				XFlush( display );
+				w = 0;
+			}
 		}
 	}
 }
