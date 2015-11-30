@@ -89,6 +89,7 @@ int daemon_main( void )
 
 				//puts( buf );
 				draw_on_screen( buf );
+				sleep(2);
 			}
 
 			close( file_fd );
