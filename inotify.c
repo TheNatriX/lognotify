@@ -63,7 +63,7 @@ int watch_files( const char *files[] )
 	}
 
 	/*
-	 * add files to inotify instance and note theyr current size.
+	 * add files to inotify instance and note their current size.
 	 */
 	file_num = 0;
 	while( files[file_num] ) {
