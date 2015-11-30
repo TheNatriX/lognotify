@@ -47,7 +47,7 @@ int daemon_main( void )
 
 		if( select( ((ifd > xfd) ? ifd : xfd) + 1,
 				       &rfds, NULL, NULL, NULL ) == -1 )
-				  perror( "select" );
+			perror( "select" );
 
 		if( FD_ISSET( ifd, &rfds ) ) {
 			//puts( "inotify event" );
@@ -71,7 +71,7 @@ int daemon_main( void )
 			if( j->size == ss.st_size )
 				continue;
 		
-			buf = malloc( ss.st_size - j->size + 1 );
+			buf = malloc( ss.st_size - j->size + 10 );
 			/* TODO check */
 
 			file_fd = open( j->name, O_RDONLY );
@@ -85,7 +85,7 @@ int daemon_main( void )
 
 			if( recv_len > 0 ) {
 				/* append null byte at the end of string */
-				*(buf + recv_len) = 0;
+				*(buf + recv_len) = '\0';
 
 				//puts( buf );
 				draw_on_screen( buf );

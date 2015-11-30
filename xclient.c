@@ -90,7 +90,7 @@ int draw_on_screen( char *content )
 		p++;
 	}
 
-	line_ptr = malloc( txt_lines * sizeof( char * ) );
+	line_ptr = malloc( txt_lines * sizeof( char * ) + 10 );
 	line_ptr_bkp = line_ptr;
 
 	p = content;
@@ -102,7 +102,7 @@ int draw_on_screen( char *content )
 			*(++line_ptr) = p;
 			txt_lines++;
 		}
-	}		
+	}
 	line_ptr = line_ptr_bkp;
 
 	draw_window( 0, 0, txt_lines );
@@ -115,7 +115,9 @@ int draw_on_screen( char *content )
 	}
 
 	XFlush( display );
-	free( line_ptr_bkp );
+
+	line_ptr = line_ptr_bkp;
+	free( line_ptr );
 
 	return 0;
 }
