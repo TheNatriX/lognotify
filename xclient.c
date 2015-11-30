@@ -32,7 +32,7 @@ int prepare_environment( void )
 	display = XOpenDisplay( NULL );
 	if( !display ) {
 		fprintf( stderr, "Can't open display.\n" );
-		return -1;
+		return 0;
 	}
 
 	screen_num = DefaultScreen( display );
@@ -41,12 +41,17 @@ int prepare_environment( void )
 	
 	xattr.override_redirect = True;
 	rootw = RootWindow( display, screen_num );
-	return 0;
+	return ConnectionNumber( display );
 }
 
 
 int draw_window( int x, int y, int rows )
 {
+	if( w ) {
+		XDestroyWindow( display, w );
+		XFlush( display );
+		w = 0;
+	}
 	w = XCreateSimpleWindow( display, rootw, x, y,
 		res_x - BORDER_PXL * 2, rows * TEXT_ROW_PXL + BORDER_PXL * 4,
 		BORDER_PXL, 0xffffffff, 0 );
@@ -60,9 +65,11 @@ int draw_window( int x, int y, int rows )
 */	
 	gc = XCreateGC( display, w, 0, NULL );
 	XSetForeground( display, gc, WhitePixel( display, screen_num ) );
-	XSelectInput( display, w, ExposureMask | ButtonPressMask );
-	XMapWindow( display, w );
+	XSelectInput(display, w,/* ExposureMask | KeyPressMask | KeyReleaseMask |
+			PointerMotionMask | */ButtonPressMask /*|
+			ButtonReleaseMask  | StructureNotifyMask*/ );
 
+	XMapWindow( display, w );
 	return 0;
 }
 
@@ -108,24 +115,20 @@ int draw_on_screen( char *content )
 	}
 
 	XFlush( display );
-
-        XEvent e;
-        while( 1 ) {
-                XNextEvent( display, &e );
-//              if( e.type == Expose && e.xexpose.count < 1 ) {
-
-//              }
-//              else
-                if( e.type == ButtonPress ) {
-                      XDestroyWindow( display, w ); 
-		      XFlush( display );
-			break;
-		}
-
-        }
-
-
 	free( line_ptr_bkp );
+
 	return 0;
+}
+
+void handle_x_events( void ) {
+	XEvent xev;
+	while( XPending( display ) ) {
+		XNextEvent( display, &xev );
+		if( xev.type == ButtonPress ) {
+			XDestroyWindow( display, w );
+			XFlush( display );
+			w = 0;
+		}
+	}
 }
 

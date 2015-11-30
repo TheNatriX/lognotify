@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 
 /* TODO: this struct must disappear from here */
@@ -15,23 +16,47 @@ struct  logfile
 
 } *j;
 
-struct logfile* wait_for_changes( void );
+struct logfile* read_inotify_events( int ifd );
 int draw_on_screen( char *content );
 int prepare_environment( void );
+int watch_files( const char *files[] );
+void handle_x_events( void );
 
-int diff_daemon( void )
+extern const char *files[];
+
+int daemon_main( void )
 {
 	struct stat ss;
-	int fd;
+	int file_fd;
+	int ifd;
+	int xfd;
 	ssize_t recv_len;
 	char *buf;
 
+	fd_set rfds;
+	/* TODO change name of this function */
+	xfd = prepare_environment();
 
-prepare_environment();
+	ifd = watch_files( files );
 
 	for(;;) {
+		FD_ZERO( &rfds );
+		FD_SET( ifd, &rfds );
+		FD_SET( xfd, &rfds );
 
-		j = wait_for_changes();
+
+		if( select( ((ifd > xfd) ? ifd : xfd) + 1,
+				       &rfds, NULL, NULL, NULL ) == -1 )
+				  perror( "select" );
+
+		if( FD_ISSET( ifd, &rfds ) ) {
+			//puts( "inotify event" );
+			j = read_inotify_events( ifd );
+		}
+		else if( FD_ISSET( xfd, &rfds ) ) {
+			//puts( "xorg event" );
+			handle_x_events();
+		}
 		if( j )	{
 
 			/* get the current size */
@@ -47,23 +72,31 @@ prepare_environment();
 				continue;
 		
 			buf = malloc( ss.st_size - j->size + 1 );
+			/* TODO check */
 
-			fd = open( j->name, O_RDONLY );
-			lseek( fd, j->size, SEEK_SET );
+			file_fd = open( j->name, O_RDONLY );
+			/* TODO check */
 
-			recv_len = read( fd, buf, ss.st_size - j->size );
-		       
+			lseek( file_fd, j->size, SEEK_SET );
+			/* TODO check */
+
+			recv_len = read( file_fd, buf, ss.st_size - j->size );
+			/* TODO check */
+
 			if( recv_len > 0 ) {
+				/* append null byte at the end of string */
 				*(buf + recv_len) = 0;
+
 				//puts( buf );
 				draw_on_screen( buf );
 			}
 
-			close( fd );
+			close( file_fd );
 
 			/* save the current size */
 			j->size = ss.st_size;
 			free(buf);
+			j = NULL;
 		}
 	}
 	

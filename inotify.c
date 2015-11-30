@@ -30,6 +30,8 @@ struct	logfile
 /*
  * this function initiate inotify and add files to
  * inotify instance in order to watch those files.
+ *
+ * also this function returns inotify fd, or 0 on error.
  */
 int watch_files( const char *files[] )
 {
@@ -93,15 +95,15 @@ int watch_files( const char *files[] )
 		file_num++;
 	}
 
-	return 1;
+	return inotify_fd;
 }
 
 
 /*
+ * ifd is the inotify file descriptor returned by watch_files().
  * returns a pointer to the right struct of file just modified, NULL on error.
- * otherwise it hangs, waiting for file events.
  */
-struct logfile* wait_for_changes( void )
+struct logfile* read_inotify_events( int ifd )
 {
 	static int i = 0;
 	static ssize_t recv_len = 0;
@@ -124,7 +126,7 @@ struct logfile* wait_for_changes( void )
 	}
 
 	/* wait for events */
-	recv_len = read( inotify_fd, ibuffer, sizeof( ibuffer ) );
+	recv_len = read( ifd, ibuffer, sizeof( ibuffer ) );
 	if( recv_len == -1 ) {
 		perror( "Cannot read from inotify file descriptor" );
 		return 0;
@@ -135,6 +137,6 @@ struct logfile* wait_for_changes( void )
 	 * instead of returning nothing here, we can just call again
 	 * this function and return a valid response.
 	 */
-	return wait_for_changes();
+	return read_inotify_events( ifd );
 }
 

@@ -4,8 +4,11 @@
 #define VERSION		"v0.0"
 
 
-int diff_daemon( void );
+int daemon_main( void );
 int watch_files( const char *files[] );
+
+const char *files[] = { "/home/natrix/test", "/home/natrix/test2",
+		"/var/log/syslog", 0 };
 
 void print_help( const char *this )
 {
@@ -21,10 +24,7 @@ int main( int argc, char *argv[] )
 {
 	print_help( (const char*) basename( argv[0] ) );
 
-	const char *files[] = { "/home/natrix/test", "/home/natrix/test2",
-		"/var/log/messages", 0 };
-	watch_files( files );
-	diff_daemon();
+	daemon_main();
 
 	return 0;
 }
