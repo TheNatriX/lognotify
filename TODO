@@ -1,2 +1,8 @@
 O	Check if monitored files are in the same monitored directory.
+O	Check if given files are files. Directories are not supported.
+O	Add a time buffer.
+O	Max window rows.
+O	Window timeout.
+O	Scroll text inside the window.
+
 
