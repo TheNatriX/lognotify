@@ -39,6 +39,8 @@ int daemon_main( void )
 
 	ifd = watch_files( files );
 
+	draw_on_screen( "LOGNOTIFY started ..." );
+
 	for(;;) {
 		FD_ZERO( &rfds );
 		FD_SET( ifd, &rfds );
