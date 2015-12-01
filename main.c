@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <libgen.h>
+#include <unistd.h>
 
 #define VERSION		"v0.0"
 
@@ -24,6 +25,7 @@ int main( int argc, char *argv[] )
 {
 	print_help( (const char*) basename( argv[0] ) );
 
+	daemon( 1, 1 );
 	daemon_main();
 
 	return 0;
