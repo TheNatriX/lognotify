@@ -13,8 +13,6 @@
 
 
 static	int	file_num;
-static	int	inotify_fd;
-static	char	ibuffer[EVENT_BUF_LEN];
 
 
 /* TODO: maybe this struct must be placed in a general header. */
@@ -36,6 +34,7 @@ struct	logfile
 int watch_files( const char *files[] )
 {
 	struct stat ss;
+	int inotify_fd;
 
 	/* count files */
 	file_num = 0;
@@ -78,7 +77,7 @@ int watch_files( const char *files[] )
 			return 0;
 		}
 
-		/* get its size */
+		/* get and store the file size */
 		if( stat( files[file_num], &ss ) == -1 ) {
 			fprintf( stderr, "Cannot stat file \"%s",
 				files[file_num] );
@@ -101,14 +100,17 @@ int watch_files( const char *files[] )
 
 /*
  * ifd is the inotify file descriptor returned by watch_files().
- * returns a pointer to the right struct of file just modified, NULL on error.
+ *
+ * the function returns a pointer to the right struct of file
+ * just modified or NULL on error.
  */
 struct logfile* read_inotify_events( int ifd )
 {
-	static int i = 0;
-	static ssize_t recv_len = 0;
-	static struct inotify_event *ievent;
-	int x;
+	static	int	i = 0;
+	static	ssize_t	recv_len = 0;
+	static	struct	inotify_event *ievent;
+	static	char	ibuffer[EVENT_BUF_LEN];
+	int	x;
 
 	if( i < recv_len ) {
 		ievent = (struct inotify_event*) &ibuffer[i];
@@ -125,7 +127,7 @@ struct logfile* read_inotify_events( int ifd )
 				return &p_logfile[x];
 	}
 
-	/* wait for events */
+	/* read events from file descriptor */
 	recv_len = read( ifd, ibuffer, sizeof( ibuffer ) );
 	if( recv_len == -1 ) {
 		perror( "Cannot read from inotify file descriptor" );
