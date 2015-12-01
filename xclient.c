@@ -90,7 +90,7 @@ int draw_on_screen( char *content )
 		p++;
 	}
 
-	line_ptr = malloc( txt_lines * sizeof( char * ) + 10 );
+	line_ptr = (char**) malloc( txt_lines * sizeof( char* ) + 8 );
 	line_ptr_bkp = line_ptr;
 
 	p = content;
@@ -102,6 +102,7 @@ int draw_on_screen( char *content )
 			*(++line_ptr) = p;
 			txt_lines++;
 		}
+		else break;
 	}
 	line_ptr = line_ptr_bkp;
 
@@ -110,7 +111,7 @@ int draw_on_screen( char *content )
 	for( one_line = 0, pos_px = 0; one_line < txt_lines;
 			one_line++, line_ptr++ ) {
 		pos_px += TEXT_ROW_PXL;
-		XDrawString( display, w, gc, 10, pos_px,
+		XDrawString( display, w, gc, 1, pos_px,
 				*(line_ptr), strlen( *(line_ptr) ) );
 	}
 
