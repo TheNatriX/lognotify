@@ -6,22 +6,10 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+#include "lognotify.h"
 
-/* TODO: this struct must disappear from here */
-struct  logfile
-{
-        int     wd;             /*      watch descriptor        */
-        size_t	size;           /*      last known size		*/
-        char    name[256];      /*      name of log file        */
-
-} *j;
-
+struct logfile *j;
 struct logfile* read_inotify_events( int ifd );
-int draw_on_screen( char *content );
-int prepare_environment( void );
-int watch_files( const char *files[] );
-void handle_x_events( void );
-
 extern const char *files[];
 
 int daemon_main( void )

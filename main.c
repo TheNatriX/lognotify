@@ -2,11 +2,7 @@
 #include <libgen.h>
 #include <unistd.h>
 
-#define VERSION		"v0.0"
-
-
-int daemon_main( void );
-int watch_files( const char *files[] );
+#include "lognotify.h"
 
 const char *files[] = { "/home/natrix/test", "/home/natrix/test2",
 		"/var/log/syslog", 0 };

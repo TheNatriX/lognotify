@@ -7,22 +7,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include "lognotify.h"
 
 #define EVENT_SIZE	( sizeof(struct inotify_event) )
 #define EVENT_BUF_LEN	( 1024  *  ( EVENT_SIZE + 16 ) )
 
 
 static	int	file_num;
-
-
-/* TODO: maybe this struct must be placed in a general header. */
-struct	logfile
-{
-	int	wd;		/*	watch descriptor	*/
-	size_t	size;		/*	last known size		*/
-	char	name[256];	/*	name of log file	*/
-
-} *p_logfile;
+struct	logfile *p_logfile;
 
 
 /*
