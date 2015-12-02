@@ -4,5 +4,5 @@ O	Add a time buffer.
 O	Max window rows.
 O	Window timeout.
 O	Scroll text inside the window.
-
+O	logfile-struct should contain file fd, last modified time.
 
