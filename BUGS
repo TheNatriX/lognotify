@@ -1,0 +1,3 @@
+o	When a file specified at command line does not exists, entire process hangs
+	on select(2).
+
