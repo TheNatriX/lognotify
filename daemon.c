@@ -9,7 +9,6 @@
 #include "lognotify.h"
 
 struct logfile *j;
-struct logfile* read_inotify_events( int ifd );
 extern const char *files[];
 
 int daemon_main( void )
