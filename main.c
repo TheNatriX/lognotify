@@ -5,7 +5,10 @@
 
 #include "lognotify.h"
 
-char *files[256];
+#define MAX_WATCH_FILES 256
+
+
+char *files[MAX_WATCH_FILES];
 
 void print_help( char *this )
 {
@@ -15,25 +18,23 @@ void print_help( char *this )
 		"LOGNOTIFY %s [%s %s]\n"
 		"\n"
 		"USAGE:\n"
-		"	%s <logfile1> <logfile2> ... <logfileN>\n"
+		"	%s <logfile1> <logfile2> ... <logfile%d>\n"
 		"\n",
-		VERSION, __DATE__, __TIME__, this
+		VERSION, __DATE__, __TIME__, this, MAX_WATCH_FILES
 	);
+	exit( EXIT_FAILURE );
 }
 
 int main( int argc, char *argv[] )
 {
 	int i;
 
-	if( argc < 2 ) {
+	if( ( argc < 2 ) && ( argc < ( MAX_WATCH_FILES + 1 ) ) )
 		print_help( basename( argv[0] ) );
-		exit( EXIT_FAILURE );
-	}
 
 	/* dummy files count */
-	for( i = 0; i < argc - 1; i++ ) {
+	for( i = 0; i < argc - 1; i++ )
 		files[i] = argv[i+1];
-	}
 
 	daemon( 1, 1 );
 	daemon_main();
