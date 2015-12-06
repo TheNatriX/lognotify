@@ -23,7 +23,7 @@ int daemon_main( void )
 
 	fd_set rfds;
 	/* TODO change name of this function */
-	xfd = prepare_environment();
+	xfd = xc_init();
 
 	ifd = watch_files( files );
 

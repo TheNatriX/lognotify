@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+/* TODO: these should be replaced by global vars editable from cmd line */
 #define TEXT_ROW_PXL		12
 #define BORDER_PXL		1
 #define TEXT_PADDING_X_PXL	2
@@ -15,31 +16,70 @@
 #define BORDER_COLOR		0xff
 #define BORDER_PXL		1
 
-static int res_x;
-static int res_y;
 
-static Display *display;
-static int screen_num;
+/*	Display related stuff	*/
+static	Display	*display;		/*	display handle		*/
+static	int	screen_num;		/*	usually :0		*/
+static	int	resolution_x;		/*	horisontal axis pixels	*/
+static	int	resolution_y;		/*	vertical axis pixels	*/
 
-static XSetWindowAttributes xattr;
-static Window rootw;
-static Window w;
-static GC gc;
 
-int prepare_environment( void )
+/*	Window stuff		*/
+static	XSetWindowAttributes	wattr;	/*	attr. for our window	*/
+static	Window			w;	/*	our window handle	*/
+static	GC			gc;	/*	gc for our window	*/
+static	Window			rootw;	/*	the root window		*/
+
+static	struct	{
+	int	rows;			/*	rows of our window	*/
+	int	columns;		/*	columns of our window	*/
+	char	**buffer;		/*	window content buffer	*/
+}	xc_window;
+
+
+/*
+ * Initiate X connection, allocate screen_buffer using resolution,
+ * history lines and font metrics.
+ * Returns a file descriptor for X connection from which X events can be read.
+ */
+int xc_init( void )
 {
+	XFontStruct *fnt_struct;
 
+	/*	open desplay		*/
 	display = XOpenDisplay( NULL );
 	if( !display ) {
 		fprintf( stderr, "Can't open display.\n" );
 		return 0;
 	}
 
+	/*	display number		*/
 	screen_num = DefaultScreen( display );
-	res_y = XDisplayHeight( display, screen_num );
-	res_x = XDisplayWidth( display, screen_num );
+
+	/*	get resolution		*/
+	resolution_y = XDisplayHeight( display, screen_num );
+	resolution_x = XDisplayWidth( display, screen_num );
+
+	/* get metrics for default font	*/
+	gc = DefaultGC( display, screen_num );
+	fnt_struct = XQueryFont( display, XGContextFromGC( gc )  );
+	if( !fnt_struct ) {
+		fprintf( stderr, "Can't query font metrics.\n" );
+		/* TODO: close display here */
+		return 0;
+	}
+
+	/* calculate content buffer	*/
 	
-	xattr.override_redirect = True;
+
+	XFreeFontInfo( NULL, fnt_struct, 0 );
+
+	/*
+	 * setting override_redirect to true to override handlig of
+	 * window manager over our window.
+	 */
+	wattr.override_redirect = True;
+
 	rootw = RootWindow( display, screen_num );
 	return ConnectionNumber( display );
 }
@@ -53,15 +93,15 @@ int draw_window( int x, int y, int rows )
 		w = 0;
 	}
 	w = XCreateSimpleWindow( display, rootw, x, y,
-		res_x - BORDER_PXL * 2, rows * TEXT_ROW_PXL + BORDER_PXL * 4,
+		resolution_x - BORDER_PXL * 2, rows * TEXT_ROW_PXL + BORDER_PXL * 4,
 		BORDER_PXL, 0xffffffff, 0 );
 
-	XChangeWindowAttributes( display, w, CWOverrideRedirect, &xattr );
+	XChangeWindowAttributes( display, w, CWOverrideRedirect, &wattr );
 
 /*
-	w = XCreateWindow( display, rootw, x, y, res_x - BORDER_PXL * 2,
+	w = XCreateWindow( display, rootw, x, y, resolution_x - BORDER_PXL * 2,
 		TEXT_ROW_PXL, BORDER_PXL, CopyFromParent, InputOutput,
-		CopyFromParent, CWOverrideRedirect, &xattr );
+		CopyFromParent, CWOverrideRedirect, &wattr );
 */	
 	gc = XCreateGC( display, w, 0, NULL );
 	XSetForeground( display, gc, WhitePixel( display, screen_num ) );

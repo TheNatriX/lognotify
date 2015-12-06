@@ -8,7 +8,7 @@
 
 /*	PROTOTYPES		*/
 int	daemon_main( void );			/*	daemon.c		*/
-int	prepare_environment( void );		/*	xclient.c		*/
+int	xc_init( void );			/*	xclient.c		*/
 int	draw_on_screen( char *content );	/*	xclient.c		*/
 void	handle_x_events( void );		/*	xclient.c		*/
 int	watch_files( const char *files[] );	/*	inotify.c		*/
