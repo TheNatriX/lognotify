@@ -73,15 +73,14 @@ int xc_init( void )
 		return 0;
 	}
 
-	/* calculate content buffer	*/
-
 	/*
+	 * calculate rows.
 	 * if max rows was not specified, use half of vertical resolution.
 	 */
 	if( !argv_max_rows ) {
 		xc_window.rows =
-			( resolution_y / 2 - 2 * BORDER_SIZE_PXL
-			  - 2 * TEXT_Y_PADDING_PXL )
+			( resolution_y / 2
+			  - 2 * BORDER_SIZE_PXL - 2 * TEXT_Y_PADDING_PXL )
 			/ ( fnt_struct->ascent + fnt_struct->descent );
 
 		/* add history lines */
@@ -93,8 +92,11 @@ int xc_init( void )
 		( resolution_x - 2 * BORDER_SIZE_PXL - 2 * TEXT_X_PADDING_PXL )
 		/ fnt_struct->max_bounds.width;
 
-
+	/*	free fnt_struct		*/
 	XFreeFontInfo( NULL, fnt_struct, 0 );
+
+	/* TODO: allocate content buffer ...	*/
+
 
 	/*
 	 * setting override_redirect to true to override handlig of
