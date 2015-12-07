@@ -9,12 +9,16 @@
 
 /* TODO: these should be replaced by global vars editable from cmd line */
 #define TEXT_ROW_PXL		12
-#define BORDER_PXL		1
 #define TEXT_PADDING_X_PXL	2
 #define TEXT_COLOR		0xfffffff
 #define WINDOW_COLOR		0
 #define BORDER_COLOR		0xff
-#define BORDER_PXL		1
+#define BORDER_SIZE_PXL		1
+int argv_max_rows =0;
+int argv_history = 0;
+#define TEXT_Y_PADDING_PXL	5
+#define TEXT_X_PADDING_PXL	5
+
 
 
 /*	Display related stuff	*/
@@ -70,7 +74,25 @@ int xc_init( void )
 	}
 
 	/* calculate content buffer	*/
-	
+
+	/*
+	 * if max rows was not specified, use half of vertical resolution.
+	 */
+	if( !argv_max_rows ) {
+		xc_window.rows =
+			( resolution_y / 2 - 2 * BORDER_SIZE_PXL
+			  - 2 * TEXT_Y_PADDING_PXL )
+			/ ( fnt_struct->ascent + fnt_struct->descent );
+
+		/* add history lines */
+		if( argv_history )
+			xc_window.rows += argv_history;
+	}
+	/*	calculate columns	*/
+	xc_window.columns =
+		( resolution_x - 2 * BORDER_SIZE_PXL - 2 * TEXT_X_PADDING_PXL )
+		/ fnt_struct->max_bounds.width;
+
 
 	XFreeFontInfo( NULL, fnt_struct, 0 );
 
@@ -93,14 +115,14 @@ int draw_window( int x, int y, int rows )
 		w = 0;
 	}
 	w = XCreateSimpleWindow( display, rootw, x, y,
-		resolution_x - BORDER_PXL * 2, rows * TEXT_ROW_PXL + BORDER_PXL * 4,
-		BORDER_PXL, 0xffffffff, 0 );
+		resolution_x - BORDER_SIZE_PXL * 2, rows * TEXT_ROW_PXL + BORDER_SIZE_PXL * 4,
+		BORDER_SIZE_PXL, 0xffffffff, 0 );
 
 	XChangeWindowAttributes( display, w, CWOverrideRedirect, &wattr );
 
 /*
-	w = XCreateWindow( display, rootw, x, y, resolution_x - BORDER_PXL * 2,
-		TEXT_ROW_PXL, BORDER_PXL, CopyFromParent, InputOutput,
+	w = XCreateWindow( display, rootw, x, y, resolution_x - BORDER_SIZE_PXL * 2,
+		TEXT_ROW_PXL, BORDER_SIZE_PXL, CopyFromParent, InputOutput,
 		CopyFromParent, CWOverrideRedirect, &wattr );
 */	
 	gc = XCreateGC( display, w, 0, NULL );
