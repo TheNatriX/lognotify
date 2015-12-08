@@ -42,12 +42,13 @@ static	struct	{
 
 
 /*
- * Initiate X connection, allocate screen_buffer using resolution,
+ * Initiate X connection, allocate window content buffer based on resolution,
  * history lines and font metrics.
  * Returns a file descriptor for X connection from which X events can be read.
  */
 int xc_init( void )
 {
+	int i;
 	XFontStruct *fnt_struct;
 
 	/*	open desplay		*/
@@ -69,7 +70,7 @@ int xc_init( void )
 	fnt_struct = XQueryFont( display, XGContextFromGC( gc )  );
 	if( !fnt_struct ) {
 		fprintf( stderr, "Can't query font metrics.\n" );
-		/* TODO: close display here */
+		XCloseDisplay( display );
 		return 0;
 	}
 
@@ -80,12 +81,15 @@ int xc_init( void )
 	if( !argv_max_rows ) {
 		xc_window.rows =
 			( resolution_y / 2
-			  - 2 * BORDER_SIZE_PXL - 2 * TEXT_Y_PADDING_PXL )
+			- 2 * BORDER_SIZE_PXL - 2 * TEXT_Y_PADDING_PXL )
 			/ ( fnt_struct->ascent + fnt_struct->descent );
 
 		/* add history lines */
 		if( argv_history )
 			xc_window.rows += argv_history;
+	} else {
+		xc_window.rows = argv_max_rows;
+		/* TODO check argv_max_rows vs resolution boundaries */
 	}
 	/*	calculate columns	*/
 	xc_window.columns =
@@ -95,8 +99,22 @@ int xc_init( void )
 	/*	free fnt_struct		*/
 	XFreeFontInfo( NULL, fnt_struct, 0 );
 
-	/* TODO: allocate content buffer ...	*/
+	/* now allocate content buffer	*/
+	xc_window.buffer = (char**) malloc( xc_window.rows * sizeof( char* ) );
+	if( !xc_window.buffer ) {
+		perror( "Can't allocate memory" );
+		XCloseDisplay( display );
+		return 0;
+	}
+	for( i = 0; i < xc_window.rows; i++ ) {
+		*( xc_window.buffer + i ) = (char*) malloc( xc_window.columns );
 
+		if( !( *( xc_window.buffer + i ) ) ) {
+			perror( "Can't allocate memory" );
+			XCloseDisplay( display );
+			return 0;
+		}
+	}
 
 	/*
 	 * setting override_redirect to true to override handlig of
