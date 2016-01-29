@@ -205,7 +205,8 @@ int draw_on_screen( char *content )
 	return 0;
 }
 
-void handle_x_events( void ) {
+void handle_x_events( void )
+{
 	XEvent xev;
 	while( XPending( display ) ) {
 		XNextEvent( display, &xev );
