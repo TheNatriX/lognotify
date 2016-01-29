@@ -22,14 +22,13 @@ int daemon_main( void )
 	char *buf;
 
 	fd_set rfds;
-	/* TODO change name of this function */
 	xfd = xc_init();
 
 	ifd = watch_files( files );
 
 	draw_on_screen( "LOGNOTIFY started ..." );
 
-	for(;;) {
+	for( ;; ) {
 		FD_ZERO( &rfds );
 		FD_SET( ifd, &rfds );
 		FD_SET( xfd, &rfds );

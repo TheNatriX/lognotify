@@ -101,7 +101,7 @@ int xc_init( void )
 
 	/* now allocate content buffer	*/
 	xc_window.buffer = (char**) malloc( xc_window.rows * sizeof( char* ) );
-	if( !xc_window.buffer ) {
+	if( xc_window.buffer == NULL ) {
 		perror( "Can't allocate memory" );
 		XCloseDisplay( display );
 		return 0;
@@ -109,7 +109,7 @@ int xc_init( void )
 	for( i = 0; i < xc_window.rows; i++ ) {
 		*( xc_window.buffer + i ) = (char*) malloc( xc_window.columns );
 
-		if( !( *( xc_window.buffer + i ) ) ) {
+		if( ( *( xc_window.buffer + i ) ) == NULL ) {
 			perror( "Can't allocate memory" );
 			XCloseDisplay( display );
 			return 0;
