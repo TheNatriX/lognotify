@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "lognotify.h"
 
 /* TODO: these should be replaced by global vars editable from cmd line */
 #define TEXT_ROW_PXL		12
@@ -107,9 +108,10 @@ int xc_init( void )
 		return 0;
 	}
 	for( i = 0; i < xc_window.rows; i++ ) {
-		*( xc_window.buffer + i ) = (char*) malloc( xc_window.columns );
+		/*	+1 for null byte	*/
+		xc_window.buffer[i] = (char*) malloc( xc_window.columns + 1 );
 
-		if( ( *( xc_window.buffer + i ) ) == NULL ) {
+		if( xc_window.buffer[i] == NULL ) {
 			perror( "Can't allocate memory" );
 			XCloseDisplay( display );
 			return 0;
@@ -155,57 +157,62 @@ int draw_window( int x, int y, int rows )
 	return 0;
 }
 
-int draw_on_screen( char *content )
+void xc_write_on_window( int rows )
 {
-	int txt_lines = 0;
-	int one_line;
-	int pos_px;
-
-	char *p;
-	char **line_ptr;
-	char **line_ptr_bkp;
-
-	p = content;
-	while( *p ) {
-		if( *p == '\n' )
-			txt_lines++;
-		p++;
+	int c;
+	for( c = 0; c < rows; c++ ) {
+		XDrawString( display, w, gc, 1, (c+1) * TEXT_ROW_PXL,
+				xc_window.buffer[c],
+				strlen( xc_window.buffer[c] ) );
 	}
-
-	line_ptr = (char**) malloc( txt_lines * sizeof( char* ) + 8 );
-	line_ptr_bkp = line_ptr;
-
-	p = content;
-	txt_lines = 1;
-	*line_ptr = content;
-	while( ( p = strstr( p, "\n" ) ) ) { 
-		*p = '\0';
-		if( ++p ) {
-			*(++line_ptr) = p;
-			txt_lines++;
-		}
-		else break;
-	}
-	line_ptr = line_ptr_bkp;
-
-	draw_window( 0, 0, txt_lines );
-
-	for( one_line = 0, pos_px = 0; one_line < txt_lines;
-			one_line++, line_ptr++ ) {
-		pos_px += TEXT_ROW_PXL;
-		XDrawString( display, w, gc, 1, pos_px,
-				*(line_ptr), strlen( *(line_ptr) ) );
-	}
-
-	XFlush( display );
-
-	line_ptr = line_ptr_bkp;
-	free( line_ptr );
-
-	return 0;
 }
 
-void handle_x_events( void )
+void xc_dispatch_to_screen( const char *content )
+{
+	int row = 0;
+	int col = 0;
+
+	/* copy content to window's buffer */
+	while( *content ) {
+
+		/* if text line is too big set cursor to the next row */
+		if( col > xc_window.columns ) {
+			xc_window.buffer[row][col] = '\0';
+			col = 0;
+			row++;
+		}
+
+		/* TODO scroll one line; here is just a reset */
+		if( row >= xc_window.rows ) {
+			row = 0;
+			col = 0;
+		}
+
+		/* new line */
+		if( *content == '\n' ) {
+			xc_window.buffer[row][col] = '\0';
+			row++;
+			col = 0;
+			content++;
+			continue;
+		}
+
+		/* copy one char */
+		xc_window.buffer[row][col] = *content;
+
+		col++;
+		content++;
+	}
+
+	/* TEST */
+	if( !row ) row = 1;
+	draw_window( 0, 0, row );
+	xc_write_on_window( row );
+
+	XFlush( display );
+}
+
+void xc_handle_events( void )
 {
 	XEvent xev;
 	while( XPending( display ) ) {

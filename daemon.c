@@ -26,7 +26,7 @@ int daemon_main( void )
 
 	ifd = watch_files( files );
 
-	draw_on_screen( "LOGNOTIFY started ..." );
+	xc_dispatch_to_screen( "LOGNOTIFY started ..." );
 
 	for( ;; ) {
 		FD_ZERO( &rfds );
@@ -44,7 +44,7 @@ int daemon_main( void )
 		}
 		else if( FD_ISSET( xfd, &rfds ) ) {
 			//puts( "xorg event" );
-			handle_x_events();
+			xc_handle_events();
 		}
 		if( j )	{
 
@@ -77,7 +77,7 @@ int daemon_main( void )
 				*(buf + recv_len) = '\0';
 
 				//puts( buf );
-				draw_on_screen( buf );
+				xc_dispatch_to_screen( buf );
 				sleep(2);
 			}
 

@@ -9,7 +9,7 @@ char *files[256];
 
 void print_help( char *this )
 {
-	printf(
+	fprintf( stderr,
 		"\n"
 		"\n"
 		"LOGNOTIFY %s [%s %s]\n"
@@ -35,7 +35,7 @@ int main( int argc, char *argv[] )
 		files[i] = argv[i+1];
 	}
 
-	daemon( 1, 1 );
+//	daemon( 1, 1 );
 	daemon_main();
 
 	return 0;

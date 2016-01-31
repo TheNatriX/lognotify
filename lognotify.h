@@ -9,8 +9,9 @@
 /*	PROTOTYPES		*/
 int	daemon_main( void );			/*	daemon.c		*/
 int	xc_init( void );			/*	xclient.c		*/
-int	draw_on_screen( char *content );	/*	xclient.c		*/
-void	handle_x_events( void );		/*	xclient.c		*/
+void	xc_handle_events( void );		/*	xclient.c		*/
+void	xc_dispatch_to_screen( const char *content );
+
 int	watch_files( const char *files[] );	/*	inotify.c		*/
 
 
