@@ -1,6 +1,6 @@
 
 CC=gcc
-CFLAGS=-O2 -Wall -pedantic
+CFLAGS=-O2 -Wall -pedantic -ansi
 DEBUG=-DDEBUG -g3
 
 SRC=main.c xclient.c inotify.c daemon.c
