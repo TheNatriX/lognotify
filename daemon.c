@@ -39,11 +39,9 @@ int daemon_main( void )
 			perror( "select" );
 
 		if( FD_ISSET( ifd, &rfds ) ) {
-			//puts( "inotify event" );
 			j = read_inotify_events( ifd );
 		}
 		else if( FD_ISSET( xfd, &rfds ) ) {
-			//puts( "xorg event" );
 			xc_handle_events();
 		}
 		if( j )	{
@@ -76,9 +74,7 @@ int daemon_main( void )
 				/* append null byte at the end of string */
 				*(buf + recv_len) = '\0';
 
-				//puts( buf );
 				xc_dispatch_to_screen( buf );
-				sleep(2);
 			}
 
 			close( file_fd );
