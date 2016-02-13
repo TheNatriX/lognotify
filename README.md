@@ -19,8 +19,8 @@ Requirements
 To Build
 ========
 
-Just type `make' to build LOGNOTIFY.
+Just type 'make' or 'make debug' to build LOGNOTIFY.
 If you want to clean up shared objects and LOGNOTIFY binary from the current
-directory, type `make clean'
+directory, type 'make clean'
 
 
