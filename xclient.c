@@ -16,35 +16,49 @@
 #define BORDER_COLOR		0xff
 #define BORDER_SIZE_PXL		1
 int argv_max_rows =0;
-int argv_history = 0;
+int argv_history = 10;
 #define TEXT_Y_PADDING_PXL	5
 #define TEXT_X_PADDING_PXL	5
 
 
 
-/*	Display related stuff	*/
+/*	Display related stuff		*/
 static	Display	*display;		/*	display handle		*/
 static	int	screen_num;		/*	usually :0		*/
 static	int	resolution_x;		/*	horisontal axis pixels	*/
 static	int	resolution_y;		/*	vertical axis pixels	*/
 
 
-/*	Window stuff		*/
+/*	X11 windowing stuff		*/
 static	XSetWindowAttributes	wattr;	/*	attr. for our window	*/
 static	Window			w;	/*	our window handle	*/
 static	GC			gc;	/*	gc for our window	*/
 static	Window			rootw;	/*	the root window		*/
 
+
+/*	Super Buffer contains all content to be displayed, it's size	*/
+/*	in rows and columns, including history lines			*/
 static	struct	{
-	int	rows;			/*	rows of our window	*/
-	int	columns;		/*	columns of our window	*/
-	char	**buffer;		/*	window content buffer	*/
-}	xc_window;
+	unsigned int	rows;		/*	rows of super buffer	*/
+	unsigned int	cols;		/*	cols of super buffer	*/
+	unsigned int	cursor;		/*	last modified line	*/
+	char	**	content;	/*	the text matrix		*/
+}	xc_super_buffer;
+
+
+/*	Window View is the current view of Super Buffer and contains	*/
+/*	only an array of pointers to Super Buffer and window size	*/
+/*	in rows and columns		*/
+static	struct	{
+	unsigned int	rows;		/*	rows of our window	*/
+	unsigned int	cols;		/*	columns of our window	*/
+	char	**	pointers;	/*	window's pointer array	*/
+}	xc_window_view;
 
 
 /*
- * Initiate X connection, allocate window content buffer based on resolution,
- * history lines and font metrics.
+ * Initiate X connection, allocate Window View and Super Buffer based on
+ * resolution, history lines and font metrics.
  * Returns a file descriptor for X connection from which X events can be read.
  */
 int xc_init( void )
@@ -76,47 +90,57 @@ int xc_init( void )
 	}
 
 	/*
-	 * calculate rows.
+	 * calculate window rows.
 	 * if max rows was not specified, use half of vertical resolution.
 	 */
 	if( !argv_max_rows ) {
-		xc_window.rows =
-			( resolution_y / 2
+		xc_window_view.rows = ( resolution_y / 2
 			- 2 * BORDER_SIZE_PXL - 2 * TEXT_Y_PADDING_PXL )
 			/ ( fnt_struct->ascent + fnt_struct->descent );
 
-		/* add history lines */
-		if( argv_history )
-			xc_window.rows += argv_history;
 	} else {
-		xc_window.rows = argv_max_rows;
+		xc_window_view.rows = argv_max_rows;
 		/* TODO check argv_max_rows vs resolution boundaries */
 	}
+
 	/*	calculate columns	*/
-	xc_window.columns =
+	xc_window_view.cols =
 		( resolution_x - 2 * BORDER_SIZE_PXL - 2 * TEXT_X_PADDING_PXL )
 		/ fnt_struct->max_bounds.width;
 
-	/*	free fnt_struct		*/
+	/*	don't need metrics any more	*/
 	XFreeFontInfo( NULL, fnt_struct, 0 );
 
-	/* now allocate content buffer	*/
-	xc_window.buffer = (char**) malloc( xc_window.rows * sizeof( char* ) );
-	if( xc_window.buffer == NULL ) {
+	/*	Super Buffer size	*/
+	xc_super_buffer.rows = xc_window_view.rows + argv_history;
+	xc_super_buffer.cols = xc_window_view.cols;
+
+	/* now allocate memory of Super Buffer	*/
+	xc_super_buffer.content = malloc( sizeof( char* ) * xc_super_buffer.rows );
+	if( xc_super_buffer.content == NULL ) {
 		perror( "Can't allocate memory" );
 		XCloseDisplay( display );
 		return 0;
 	}
-	for( i = 0; i < xc_window.rows; i++ ) {
+	for( i = 0; i < xc_super_buffer.rows; i++ ) {
 		/*	+1 for null byte	*/
-		xc_window.buffer[i] = (char*) malloc( xc_window.columns + 1 );
-
-		if( xc_window.buffer[i] == NULL ) {
+		xc_super_buffer.content[i] = malloc( xc_super_buffer.cols + 1 );
+		if( xc_super_buffer.content[i] == NULL ) {
 			perror( "Can't allocate memory" );
 			XCloseDisplay( display );
 			return 0;
 		}
 	}
+
+	/*	allocate memory for window pointers	*/
+	xc_window_view.pointers = malloc( sizeof( char* ) * xc_window_view.rows );
+	if( xc_window_view.pointers == NULL ) {
+		XCloseDisplay( display );
+		return 0;
+	}
+
+	/*	buffer is empty now	*/
+	xc_super_buffer.cursor = 0;
 
 	/*
 	 * setting override_redirect to true to override handlig of
@@ -128,7 +152,7 @@ int xc_init( void )
 	return ConnectionNumber( display );
 }
 
-
+/* TODO: reimplement this function */
 int draw_window( int x, int y, int rows )
 {
 	if( w ) {
@@ -159,55 +183,153 @@ int draw_window( int x, int y, int rows )
 
 void xc_write_on_window( int rows )
 {
+	/* just a TEST; need implemenntation */
 	int c;
 	for( c = 0; c < rows; c++ ) {
 		XDrawString( display, w, gc, 1, (c+1) * TEXT_ROW_PXL,
-				xc_window.buffer[c],
-				strlen( xc_window.buffer[c] ) );
+				xc_window_view.pointers[c],
+				strlen( xc_window_view.pointers[c] ) );
 	}
+}
+
+void xc_scroll_buffer_up( const unsigned int lines )
+{
+	/*
+	 * instead of copying characters to upper lines
+	 * its better to move only line pointers in a circular way
+	 */
+
+	int c;
+	char *p_bkp;
+	register int x;
+
+	if( ! lines ) return; /* TODO really need this ? */
+
+	for( c = 0; c < lines; c++ ) {
+		p_bkp = xc_super_buffer.content[0];
+		for( x = 0; x < xc_super_buffer.rows - 1; x++ )
+			xc_super_buffer.content[x] = xc_super_buffer.content[ x+1 ];
+		xc_super_buffer.content[x] = p_bkp;
+	}
+}
+
+void xc_bind_view( void )
+{
+	int row;
+	int c;
+
+	if( xc_super_buffer.cursor >= xc_window_view.rows )
+		c = xc_super_buffer.cursor - xc_window_view.rows;
+	else	c = 0;
+
+	for( row = 0; row < xc_window_view.rows; row++, c++ )
+		xc_window_view.pointers[row] = xc_super_buffer.content[c];
+}
+
+unsigned int xc_count_rows( const char *content )
+{
+	unsigned int rows = 0;
+	register unsigned int cols = 0;
+
+	while( *content ) {
+
+		/*	line too long	*/
+		if( cols == xc_super_buffer.cols ) {
+			cols = 0;
+			rows++;
+		}
+
+		/*	end of line	*/
+		if( *content == '\n' ) {
+			cols = 0;
+			rows++;
+			content++;
+			continue;
+		}
+
+		content++;
+		cols++;
+	}
+
+	/*	maybe last line doesn't have '\n'	*/
+	if( *( content - 1 ) != '\n' )
+		rows++;
+
+	return rows;
+}
+
+void xc_store_cursor_position( const char *last_modified_row )
+{
+	register unsigned int pos = 0;
+	char *row_ptr = xc_super_buffer.content[pos];
+
+	/*	count rows between first and last	*/
+	while( row_ptr != last_modified_row ) {
+		pos++;
+		row_ptr = xc_super_buffer.content[pos];
+	}
+
+	/*	store rows count	*/
+	xc_super_buffer.cursor = pos;
+
+/* TRACE */
+#ifdef DEBUG
+	fprintf( stderr, "%s():\tcursor == %u\n",
+			__FUNCTION__, xc_super_buffer.cursor );
+#endif
 }
 
 void xc_dispatch_to_screen( const char *content )
 {
-	int row = 0;
-	int col = 0;
+	unsigned int col;
+	unsigned int row;
 
-	/* copy content to window's buffer */
+	/*	copy content to buffer	*/
+	col = 0;
+	row = xc_super_buffer.cursor;
 	while( *content ) {
 
 		/* if text line is too big set cursor to the next row */
-		if( col > xc_window.columns ) {
-			xc_window.buffer[row][col] = '\0';
+		if( col > xc_super_buffer.cols ) {
+			xc_super_buffer.content[row][col] = '\0';
 			col = 0;
 			row++;
 		}
 
-		/* TODO scroll one line; here is just a reset */
-		if( row >= xc_window.rows ) {
-			row = 0;
+		/*	scroll up	*/
+		if( row == xc_super_buffer.rows ) {
 			col = 0;
+			row--;
+			xc_scroll_buffer_up( 1 );
 		}
 
-		/* new line */
+		/*	new line	*/
 		if( *content == '\n' ) {
-			xc_window.buffer[row][col] = '\0';
+			xc_super_buffer.content[row][col] = '\0';
 			row++;
 			col = 0;
 			content++;
 			continue;
 		}
 
-		/* copy one char */
-		xc_window.buffer[row][col] = *content;
+		/*	copy one char	*/
+		xc_super_buffer.content[row][col] = *content;
 
 		col++;
 		content++;
 	}
 
+	/*	maybe last line doesn't have '\n'	*/
+	if( *( content - 1 ) != '\n' ) {
+		xc_super_buffer.content[row][col] = '\0';
+		row++;
+	}
+
 	/* TEST */
-	if( !row ) row = 1;
-	draw_window( 0, 0, row );
-	xc_write_on_window( row );
+	xc_store_cursor_position( xc_super_buffer.content[row] );
+	xc_bind_view();
+	draw_window( 0, 0, xc_window_view.rows );
+	xc_write_on_window( xc_window_view.rows );
 
 	XFlush( display );
 }
