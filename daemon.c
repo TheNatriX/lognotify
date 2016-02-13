@@ -21,14 +21,13 @@ int daemon_main( void )
 	char *buf;
 
 	fd_set rfds;
-	/* TODO change name of this function */
-	xfd = prepare_environment();
+	xfd = xc_init();
 
 	ifd = watch_files( files );
 
-	draw_on_screen( "LOGNOTIFY started ..." );
+	xc_dispatch_to_screen( "LOGNOTIFY started ..." );
 
-	for(;;) {
+	for( ;; ) {
 		FD_ZERO( &rfds );
 		FD_SET( ifd, &rfds );
 		FD_SET( xfd, &rfds );
@@ -39,12 +38,10 @@ int daemon_main( void )
 			perror( "select" );
 
 		if( FD_ISSET( ifd, &rfds ) ) {
-			//puts( "inotify event" );
 			j = read_inotify_events( ifd );
 		}
 		else if( FD_ISSET( xfd, &rfds ) ) {
-			//puts( "xorg event" );
-			handle_x_events();
+			xc_handle_events();
 		}
 		if( j )	{
 
@@ -76,9 +73,7 @@ int daemon_main( void )
 				/* append null byte at the end of string */
 				*(buf + recv_len) = '\0';
 
-				//puts( buf );
-				draw_on_screen( buf );
-				sleep(2);
+				xc_dispatch_to_screen( buf );
 			}
 
 			close( file_fd );

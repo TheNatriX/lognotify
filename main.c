@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <libgen.h>
-#include <unistd.h>
 #include <stdlib.h>
+
+#define __USE_BSD
+#include <unistd.h>
 
 #include "lognotify.h"
 
@@ -12,7 +14,7 @@ char *files[MAX_WATCH_FILES];
 
 void print_help( char *this )
 {
-	printf(
+	fprintf( stderr,
 		"\n"
 		"\n"
 		"LOGNOTIFY %s [%s %s]\n"
@@ -36,7 +38,9 @@ int main( int argc, char *argv[] )
 	for( i = 0; i < argc - 1; i++ )
 		files[i] = argv[i+1];
 
+#ifndef DEBUG
 	daemon( 1, 1 );
+#endif
 	daemon_main();
 
 	return 0;
