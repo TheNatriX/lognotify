@@ -11,7 +11,7 @@
 struct logfile *j;
 extern const char *files[];
 
-int daemon_main( void )
+int daemon_main(void)
 {
 	struct stat ss;
 	int file_fd;
@@ -23,60 +23,58 @@ int daemon_main( void )
 	fd_set rfds;
 	xfd = xc_init();
 
-	ifd = watch_files( files );
+	ifd = watch_files(files);
 
-	xc_dispatch_to_screen( "LOGNOTIFY started ..." );
+	xc_dispatch_to_screen("LOGNOTIFY started ...");
 
-	for( ;; ) {
-		FD_ZERO( &rfds );
-		FD_SET( ifd, &rfds );
-		FD_SET( xfd, &rfds );
+	for (;;) {
+		FD_ZERO(&rfds);
+		FD_SET(ifd, &rfds);
+		FD_SET(xfd, &rfds);
 
+		if (select(((ifd > xfd) ? ifd : xfd) + 1, &rfds, NULL, NULL, NULL)
+				== -1)
+			perror("select");
 
-		if( select( ((ifd > xfd) ? ifd : xfd) + 1,
-				       &rfds, NULL, NULL, NULL ) == -1 )
-			perror( "select" );
-
-		if( FD_ISSET( ifd, &rfds ) ) {
-			j = read_inotify_events( ifd );
-		}
-		else if( FD_ISSET( xfd, &rfds ) ) {
+		if (FD_ISSET(ifd, &rfds)) {
+			j = read_inotify_events(ifd);
+		} else if (FD_ISSET(xfd, &rfds)) {
 			xc_handle_events();
 		}
-		if( j )	{
+		if (j) {
 
 			/* get the current size */
-			if( stat( j->name, &ss ) == -1 ) {
-				fprintf( stderr, "Cannot stat file \"%s", j->name );
-				perror( "\"" );
+			if (stat(j->name, &ss) == -1) {
+				fprintf(stderr, "Cannot stat file \"%s", j->name);
+				perror("\"");
 				continue;
 			}
 
 			/* if the size is not the same, read content from file */
 			/* TODO: handle conditions when logs were truncated */
-			if( j->size == ss.st_size )
+			if (j->size == ss.st_size)
 				continue;
 		
-			buf = malloc( ss.st_size - j->size + 10 );
+			buf = malloc(ss.st_size - j->size + 10);
 			/* TODO check */
 
-			file_fd = open( j->name, O_RDONLY );
+			file_fd = open(j->name, O_RDONLY);
 			/* TODO check */
 
-			lseek( file_fd, j->size, SEEK_SET );
+			lseek(file_fd, j->size, SEEK_SET);
 			/* TODO check */
 
-			recv_len = read( file_fd, buf, ss.st_size - j->size );
+			recv_len = read(file_fd, buf, ss.st_size - j->size);
 			/* TODO check */
 
-			if( recv_len > 0 ) {
+			if (recv_len > 0) {
 				/* append null byte at the end of string */
 				*(buf + recv_len) = '\0';
 
-				xc_dispatch_to_screen( buf );
+				xc_dispatch_to_screen(buf);
 			}
 
-			close( file_fd );
+			close(file_fd);
 
 			/* save the current size */
 			j->size = ss.st_size;

@@ -12,9 +12,9 @@
 
 char *files[MAX_WATCH_FILES];
 
-void print_help( char *this )
+void print_help(char *this)
 {
-	fprintf( stderr,
+	fprintf(stderr,
 		"\n"
 		"\n"
 		"LOGNOTIFY %s [%s %s]\n"
@@ -22,24 +22,23 @@ void print_help( char *this )
 		"USAGE:\n"
 		"	%s <logfile1> <logfile2> ... <logfile%d>\n"
 		"\n",
-		VERSION, __DATE__, __TIME__, this, MAX_WATCH_FILES
-	);
-	exit( EXIT_FAILURE );
+		VERSION, __DATE__, __TIME__, this, MAX_WATCH_FILES);
+	exit(EXIT_FAILURE);
 }
 
-int main( int argc, char *argv[] )
+int main(int argc, char *argv[])
 {
 	int i;
 
-	if( ( argc < 2 ) && ( argc < ( MAX_WATCH_FILES + 1 ) ) )
-		print_help( basename( argv[0] ) );
+	if ((argc < 2) && (argc < (MAX_WATCH_FILES + 1)))
+		print_help(basename(argv[0]));
 
 	/* dummy files count */
-	for( i = 0; i < argc - 1; i++ )
+	for (i = 0; i < argc - 1; i++)
 		files[i] = argv[i+1];
 
 #ifndef DEBUG
-	daemon( 1, 1 );
+	daemon(1, 1);
 #endif
 	daemon_main();
 

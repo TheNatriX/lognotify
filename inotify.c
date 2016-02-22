@@ -9,8 +9,8 @@
 
 #include "lognotify.h"
 
-#define EVENT_SIZE	( sizeof(struct inotify_event) )
-#define EVENT_BUF_LEN	( 1024  *  ( EVENT_SIZE + 16 ) )
+#define EVENT_SIZE	(sizeof(struct inotify_event))
+#define EVENT_BUF_LEN	(1024   *   (EVENT_SIZE + 16))
 
 
 static	int	file_num;
@@ -23,24 +23,23 @@ struct	logfile *p_logfile;
  *
  * also this function returns inotify fd, or 0 on error.
  */
-int watch_files( const char *files[] )
+int watch_files(const char *files[])
 {
 	struct stat ss;
 	int inotify_fd;
 
 	/* count files */
 	file_num = 0;
-	while( files[file_num] )
+	while (files[file_num])
 		file_num++;
 
 	/*
 	 * allocate memory for counted files, no need to free it soon.
 	 */
-	p_logfile = (struct logfile*) malloc(
-		sizeof( struct logfile ) * file_num );
+	p_logfile = (struct logfile*) malloc(sizeof(struct logfile) * file_num);
 
-	if( !p_logfile ) {
-		perror( "Cannot allocate memory" );
+	if (!p_logfile) {
+		perror("Cannot allocate memory");
 		return 0;
 	}
 
@@ -48,8 +47,8 @@ int watch_files( const char *files[] )
 	 * initiate inotify.
 	 */
 	inotify_fd = inotify_init();
-	if( inotify_fd == -1 ) {
-		perror( "Cannot initiate inotify" );
+	if (inotify_fd == -1) {
+		perror("Cannot initiate inotify");
 		return 0;
 	}
 
@@ -57,31 +56,28 @@ int watch_files( const char *files[] )
 	 * add files to inotify instance and note their current size.
 	 */
 	file_num = 0;
-	while( files[file_num] ) {
+	while (files[file_num]) {
+		p_logfile[file_num].wd = inotify_add_watch(inotify_fd,
+			files[file_num], IN_MODIFY);
 
-		p_logfile[file_num].wd = inotify_add_watch( inotify_fd,
-			files[file_num], IN_MODIFY );
-
-		if( p_logfile[file_num].wd == -1 ) {
-			fprintf( stderr, "Cannot watch \"%s",
-				files[file_num] );
-			perror( "\"" );
+		if (p_logfile[file_num].wd == -1) {
+			fprintf(stderr, "Cannot watch \"%s", files[file_num]);
+			perror("\"");
 			return 0;
 		}
 
 		/* get and store the file size */
-		if( stat( files[file_num], &ss ) == -1 ) {
-			fprintf( stderr, "Cannot stat file \"%s",
-				files[file_num] );
-			perror( "\"" );
+		if (stat(files[file_num], &ss) == -1) {
+			fprintf(stderr, "Cannot stat file \"%s", files[file_num]);
+			perror("\"");
 			return 0;
 		}
 		p_logfile[file_num].size = ss.st_size;
 
 
 		/* TODO: maybe char name[256] must be dyn. allocated */
-		strncpy( p_logfile[file_num].name, files[file_num],
-			sizeof( p_logfile[file_num].name ) );
+		strncpy(p_logfile[file_num].name, files[file_num],
+			sizeof(p_logfile[file_num].name));
 
 		file_num++;
 	}
@@ -96,7 +92,7 @@ int watch_files( const char *files[] )
  * the function returns a pointer to the right struct of file
  * just modified or NULL on error.
  */
-struct logfile* read_inotify_events( int ifd )
+struct logfile* read_inotify_events(int ifd)
 {
 	static	int	i = 0;
 	static	ssize_t	recv_len = 0;
@@ -104,7 +100,7 @@ struct logfile* read_inotify_events( int ifd )
 	static	char	ibuffer[EVENT_BUF_LEN];
 	int	x;
 
-	if( i < recv_len ) {
+	if (i < recv_len) {
 		ievent = (struct inotify_event*) &ibuffer[i];
 		i += EVENT_SIZE + ievent->len;
 
@@ -114,15 +110,15 @@ struct logfile* read_inotify_events( int ifd )
 		 *
 		 * return a pointer to the mallocated structure.
 		 */
-		for( x = 0; x < file_num; x++ )
-			if( ievent->wd == p_logfile[x].wd )
+		for (x = 0; x < file_num; x++)
+			if (ievent->wd == p_logfile[x].wd)
 				return &p_logfile[x];
 	}
 
 	/* read events from file descriptor */
-	recv_len = read( ifd, ibuffer, sizeof( ibuffer ) );
-	if( recv_len == -1 ) {
-		perror( "Cannot read from inotify file descriptor" );
+	recv_len = read(ifd, ibuffer, sizeof(ibuffer));
+	if (recv_len == -1) {
+		perror("Cannot read from inotify file descriptor");
 		return 0;
 	}
 	i = 0;
@@ -131,6 +127,6 @@ struct logfile* read_inotify_events( int ifd )
 	 * instead of returning nothing here, we can just call again
 	 * this function and return a valid response.
 	 */
-	return read_inotify_events( ifd );
+	return read_inotify_events(ifd);
 }
 
