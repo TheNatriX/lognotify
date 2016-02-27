@@ -56,6 +56,9 @@ static	struct	{
 }	xc_window_view;
 
 
+static int xc_scroll_view_counter;	/*	used to scroll window text	*/
+
+
 /*
  * Initiate X connection, allocate Window View and Super Buffer based on
  * resolution, history lines and font metrics.
@@ -192,7 +195,7 @@ void xc_write_on_window(const int rows)
 	}
 }
 
-void xc_scroll_buffer_up(const unsigned int lines)
+void xc_scroll_buffer_up(unsigned int lines)
 {
 	/*
 	 * instead of copying characters to upper lines
@@ -200,29 +203,51 @@ void xc_scroll_buffer_up(const unsigned int lines)
 	 */
 
 	int c;
-	char *p_bkp;
+	char *p;
 	register int x;
 
 	for (c = 0; c < lines; c++) {
-		p_bkp = xc_super_buffer.content[0];
+		p = xc_super_buffer.content[0];
 		for (x = 0; x < xc_super_buffer.rows - 1; x++)
 			xc_super_buffer.content[x] = xc_super_buffer.content[x + 1];
-		xc_super_buffer.content[x] = p_bkp;
+		xc_super_buffer.content[x] = p;
 	}
 }
 
-void xc_bind_view(void)
+void xc_bind_view(int buffer_row)
 {
 	int row;
-	int c;
+	if (buffer_row >= xc_window_view.rows)
+		buffer_row -= xc_window_view.rows;
+	else buffer_row = 0;
+	for (row = 0; row < xc_window_view.rows; row++, buffer_row++)
+		xc_window_view.pointers[row] = xc_super_buffer.content[buffer_row];
+}
 
-	if (xc_super_buffer.cursor >= xc_window_view.rows)
-		c = xc_super_buffer.cursor - xc_window_view.rows;
-	else
-		c = 0;
+int xc_scroll_view_up(void)
+{
+	if (xc_scroll_view_counter > argv_history) {
+		xc_scroll_view_counter = argv_history;
+		return 0;
+	} else if (xc_scroll_view_counter < 0) {
+		xc_scroll_view_counter = 0;
+		return 0;
+	}
+	xc_bind_view(xc_super_buffer.cursor - xc_scroll_view_counter++);
+	return 1;
+}
 
-	for (row = 0; row < xc_window_view.rows; row++, c++)
-		xc_window_view.pointers[row] = xc_super_buffer.content[c];
+int xc_scroll_view_down(void)
+{
+	if (xc_scroll_view_counter > argv_history) {
+		xc_scroll_view_counter = argv_history;
+		return 0;
+	} else if (xc_scroll_view_counter < 0) {
+		xc_scroll_view_counter = 0;
+		return 0;
+	}
+	xc_bind_view(xc_super_buffer.cursor - xc_scroll_view_counter--);
+	return 1;
 }
 
 unsigned int xc_count_rows(const char *content)
@@ -326,7 +351,8 @@ void xc_dispatch_to_screen(const char *content)
 
 	/* TEST */
 	xc_store_cursor_position(xc_super_buffer.content[row]);
-	xc_bind_view();
+	xc_bind_view(xc_super_buffer.cursor);
+	xc_scroll_view_counter = 0;
 	draw_window(0, 0, xc_window_view.rows);
 	xc_write_on_window(xc_window_view.rows);
 
@@ -339,10 +365,25 @@ void xc_handle_events(void)
 	while (XPending(display)) {
 		XNextEvent(display, &xev);
 		if (xev.type == ButtonPress) {
-			if (w) {
-				XDestroyWindow(display, w);
+			switch (xev.xbutton.button) {
+			case Button4:
+				xc_scroll_view_up();
+				draw_window(0, 0, xc_window_view.rows);
+				xc_write_on_window(xc_window_view.rows);
 				XFlush(display);
-				w = 0;
+				break;
+			case Button5:
+				xc_scroll_view_down();
+				draw_window(0, 0, xc_window_view.rows);
+				xc_write_on_window(xc_window_view.rows);
+				XFlush(display);
+				break;
+			default:
+				if (w) {
+					XDestroyWindow(display, w);
+					XFlush(display);
+					w = 0;
+				}
 			}
 		}
 	}
