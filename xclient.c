@@ -16,7 +16,7 @@
 #define BORDER_COLOR		0xff
 #define BORDER_SIZE_PXL		1
 int argv_max_rows =0;
-int argv_history = 10;
+int argv_history = 100;
 #define TEXT_Y_PADDING_PXL	5
 #define TEXT_X_PADDING_PXL	5
 
@@ -159,9 +159,11 @@ int xc_init(void)
 int draw_window(int x, int y, int rows)
 {
 	if (w) {
-		XDestroyWindow(display, w);
+		/*XDestroyWindow(display, w);
 		XFlush(display);
-		w = 0;
+		w = 0;*/
+		XClearWindow(display, w);
+		return 0;
 	}
 	w = XCreateSimpleWindow(display, rootw, x, y,
 		resolution_x - BORDER_SIZE_PXL * 2, rows * TEXT_ROW_PXL + BORDER_SIZE_PXL * 4,
@@ -368,13 +370,13 @@ void xc_handle_events(void)
 			switch (xev.xbutton.button) {
 			case Button4:
 				xc_scroll_view_up();
-				draw_window(0, 0, xc_window_view.rows);
+				XClearWindow(display, w);
 				xc_write_on_window(xc_window_view.rows);
 				XFlush(display);
 				break;
 			case Button5:
 				xc_scroll_view_down();
-				draw_window(0, 0, xc_window_view.rows);
+				XClearWindow(display, w);
 				xc_write_on_window(xc_window_view.rows);
 				XFlush(display);
 				break;
