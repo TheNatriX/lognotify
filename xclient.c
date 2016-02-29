@@ -69,21 +69,17 @@ int xc_init(void)
 	int i;
 	XFontStruct *fnt_struct;
 
-	/*	open desplay		*/
 	display = XOpenDisplay(NULL);
 	if (!display) {
 		fprintf(stderr, "Can't open display.\n");
 		return 0;
 	}
-
-	/*	display number		*/
 	screen_num = DefaultScreen(display);
 
-	/*	get resolution		*/
 	resolution_y = XDisplayHeight(display, screen_num);
 	resolution_x = XDisplayWidth(display, screen_num);
 
-	/* get metrics for default font	*/
+	/* get metrics for default font */
 	gc = DefaultGC(display, screen_num);
 	fnt_struct = XQueryFont(display, XGContextFromGC(gc));
 	if (!fnt_struct) {
@@ -105,20 +101,15 @@ int xc_init(void)
 		xc_window_view.rows = argv_max_rows;
 		/* TODO check argv_max_rows vs resolution boundaries */
 	}
-
-	/*	calculate columns	*/
+	/* calculate columns */
 	xc_window_view.cols =
 		(resolution_x - 2 * BORDER_SIZE_PXL - 2 * TEXT_X_PADDING_PXL)
 		/ fnt_struct->max_bounds.width;
-
-	/*	don't need metrics anymore	*/
 	XFreeFontInfo(NULL, fnt_struct, 0);
-
-	/*	Super Buffer size	*/
+	/* Super Buffer size */
 	xc_super_buffer.rows = xc_window_view.rows + argv_history;
 	xc_super_buffer.cols = xc_window_view.cols;
-
-	/* now allocate memory for Super Buffer	*/
+	/* now allocate memory for Super Buffer */
 	xc_super_buffer.content = malloc(sizeof(char*) * xc_super_buffer.rows);
 	if (xc_super_buffer.content == NULL) {
 		perror("Can't allocate memory");
@@ -126,7 +117,7 @@ int xc_init(void)
 		return 0;
 	}
 	for (i = 0; i < xc_super_buffer.rows; i++) {
-		/*	+1 for null byte	*/
+		/* +1 for null byte */
 		xc_super_buffer.content[i] = malloc(xc_super_buffer.cols + 1);
 		if (xc_super_buffer.content[i] == NULL) {
 			perror("Can't allocate memory");
@@ -134,15 +125,13 @@ int xc_init(void)
 			return 0;
 		}
 	}
-
-	/*	allocate memory for window pointers	*/
+	/* allocate memory for window pointers */
 	xc_window_view.pointers = malloc(sizeof(char*) * xc_window_view.rows);
 	if (xc_window_view.pointers == NULL) {
 		XCloseDisplay(display);
 		return 0;
 	}
-
-	/*	buffer is empty now	*/
+	/* buffer is empty now */
 	xc_super_buffer.cursor = 0;
 
 	/*
@@ -159,30 +148,26 @@ int xc_init(void)
 int draw_window(int x, int y, int rows)
 {
 	if (w) {
-		/*XDestroyWindow(display, w);
-		XFlush(display);
-		w = 0;*/
 		XClearWindow(display, w);
 		return 0;
 	}
 	w = XCreateSimpleWindow(display, rootw, x, y,
-		resolution_x - BORDER_SIZE_PXL * 2, rows * TEXT_ROW_PXL + BORDER_SIZE_PXL * 4,
+		resolution_x - BORDER_SIZE_PXL * 2,
+		rows * TEXT_ROW_PXL + BORDER_SIZE_PXL * 4,
 		BORDER_SIZE_PXL, 0xffffffff, 0);
 
 	XChangeWindowAttributes(display, w, CWOverrideRedirect, &wattr);
-
 /*
-	w = XCreateWindow( display, rootw, x, y, resolution_x - BORDER_SIZE_PXL * 2,
+	w = XCreateWindow( display, rootw, x, y,
+		resolution_x - BORDER_SIZE_PXL * 2,
 		TEXT_ROW_PXL, BORDER_SIZE_PXL, CopyFromParent, InputOutput,
 		CopyFromParent, CWOverrideRedirect, &wattr );
 */	
 	gc = XCreateGC(display, w, 0, NULL);
 	XSetForeground(display, gc, WhitePixel(display, screen_num));
-	XSelectInput(display, w,/* ExposureMask | KeyPressMask | KeyReleaseMask |
-			PointerMotionMask | */ButtonPressMask /*|
-			ButtonReleaseMask  | StructureNotifyMask*/);
-
+	XSelectInput(display, w, ButtonPressMask);
 	XMapWindow(display, w);
+
 	return 0;
 }
 
@@ -228,6 +213,7 @@ void xc_bind_view(int buffer_row)
 
 int xc_scroll_view_up(void)
 {
+	xc_scroll_view_counter++;
 	if (xc_scroll_view_counter > argv_history) {
 		xc_scroll_view_counter = argv_history;
 		return 0;
@@ -235,12 +221,13 @@ int xc_scroll_view_up(void)
 		xc_scroll_view_counter = 0;
 		return 0;
 	}
-	xc_bind_view(xc_super_buffer.cursor - xc_scroll_view_counter++);
+	xc_bind_view(xc_super_buffer.cursor - xc_scroll_view_counter);
 	return 1;
 }
 
 int xc_scroll_view_down(void)
 {
+	xc_scroll_view_counter--;
 	if (xc_scroll_view_counter > argv_history) {
 		xc_scroll_view_counter = argv_history;
 		return 0;
@@ -248,7 +235,7 @@ int xc_scroll_view_down(void)
 		xc_scroll_view_counter = 0;
 		return 0;
 	}
-	xc_bind_view(xc_super_buffer.cursor - xc_scroll_view_counter--);
+	xc_bind_view(xc_super_buffer.cursor - xc_scroll_view_counter);
 	return 1;
 }
 
@@ -258,26 +245,22 @@ unsigned int xc_count_rows(const char *content)
 	register unsigned int cols = 0;
 
 	while (*content) {
-
-		/*	line too long	*/
+		/* line too long */
 		if (cols == xc_super_buffer.cols) {
 			cols = 0;
 			rows++;
 		}
-
-		/*	end of line	*/
+		/* end of line */
 		if (*content == '\n') {
 			cols = 0;
 			rows++;
 			content++;
 			continue;
 		}
-
 		content++;
 		cols++;
 	}
-
-	/*	maybe last line doesn't have '\n'	*/
+	/* maybe last line doesn't have '\n' */
 	if (*(content - 1) != '\n')
 		rows++;
 
@@ -288,14 +271,12 @@ void xc_store_cursor_position(const char *last_modified_row)
 {
 	register unsigned int pos = 0;
 	char *row_ptr = xc_super_buffer.content[pos];
-
-	/*	count rows between first and last	*/
+	/* count rows between first and last */
 	while (row_ptr != last_modified_row) {
 		pos++;
 		row_ptr = xc_super_buffer.content[pos];
 	}
-
-	/*	store rows count	*/
+	/* store rows count */
 	xc_super_buffer.cursor = pos;
 
 /* TRACE */
@@ -310,26 +291,23 @@ void xc_dispatch_to_screen(const char *content)
 	unsigned int col;
 	unsigned int row;
 
-	/*	copy content to buffer	*/
+	/* copy content to buffer */
 	col = 0;
 	row = xc_super_buffer.cursor;
 	while (*content) {
-
 		/* if text line is too big set cursor to the next row */
 		if (col > xc_super_buffer.cols) {
 			xc_super_buffer.content[row][col] = '\0';
 			col = 0;
 			row++;
 		}
-
-		/*	scroll up	*/
+		/* scroll up */
 		if (row == xc_super_buffer.rows) {
 			col = 0;
 			row--;
-			xc_scroll_buffer_up( 1 );
+			xc_scroll_buffer_up(1);
 		}
-
-		/*	new line	*/
+		/* new line */
 		if (*content == '\n') {
 			xc_super_buffer.content[row][col] = '\0';
 			row++;
@@ -337,15 +315,12 @@ void xc_dispatch_to_screen(const char *content)
 			content++;
 			continue;
 		}
-
-		/*	copy one char	*/
+		/* copy one char */
 		xc_super_buffer.content[row][col] = *content;
-
 		col++;
 		content++;
 	}
-
-	/*	maybe last line doesn't have '\n'	*/
+	/* maybe last line doesn't have '\n' */
 	if (*(content - 1) != '\n') {
 		xc_super_buffer.content[row][col] = '\0';
 		row++;
@@ -357,7 +332,6 @@ void xc_dispatch_to_screen(const char *content)
 	xc_scroll_view_counter = 0;
 	draw_window(0, 0, xc_window_view.rows);
 	xc_write_on_window(xc_window_view.rows);
-
 	XFlush(display);
 }
 
@@ -369,16 +343,18 @@ void xc_handle_events(void)
 		if (xev.type == ButtonPress) {
 			switch (xev.xbutton.button) {
 			case Button4:
-				xc_scroll_view_up();
-				XClearWindow(display, w);
-				xc_write_on_window(xc_window_view.rows);
-				XFlush(display);
+				if (xc_scroll_view_up()) {
+					XClearWindow(display, w);
+					xc_write_on_window(xc_window_view.rows);
+					XFlush(display);
+				}
 				break;
 			case Button5:
-				xc_scroll_view_down();
-				XClearWindow(display, w);
-				xc_write_on_window(xc_window_view.rows);
-				XFlush(display);
+				if (xc_scroll_view_down()) {
+					XClearWindow(display, w);
+					xc_write_on_window(xc_window_view.rows);
+					XFlush(display);
+				}
 				break;
 			default:
 				if (w) {
