@@ -124,6 +124,7 @@ int xc_init(void)
 			XCloseDisplay(display);
 			return 0;
 		}
+		memset(xc_super_buffer.content[i], 0x00, xc_super_buffer.cols + 1);
 	}
 	/* allocate memory for window pointers */
 	xc_window_view.pointers = malloc(sizeof(char*) * xc_window_view.rows);
@@ -213,14 +214,24 @@ void xc_bind_view(int buffer_row)
 
 int xc_scroll_view_up(void)
 {
+	if(xc_super_buffer.cursor <= xc_window_view.rows)
+		return 0;
+
 	xc_scroll_view_counter++;
-	if (xc_scroll_view_counter > argv_history) {
-		xc_scroll_view_counter = argv_history;
+	if (xc_scroll_view_counter > xc_super_buffer.cursor - xc_window_view.rows) {
+		xc_scroll_view_counter =
+			xc_super_buffer.cursor - xc_window_view.rows;
 		return 0;
 	} else if (xc_scroll_view_counter < 0) {
 		xc_scroll_view_counter = 0;
 		return 0;
 	}
+
+/* TRACE */
+#ifdef DEBUG
+	fprintf(stderr, "xc_scroll_view_up(): xc_scroll_view_counter == %d\n",
+			xc_scroll_view_counter);
+#endif
 	xc_bind_view(xc_super_buffer.cursor - xc_scroll_view_counter);
 	return 1;
 }
@@ -235,6 +246,12 @@ int xc_scroll_view_down(void)
 		xc_scroll_view_counter = 0;
 		return 0;
 	}
+
+/* TRACE */
+#ifdef DEBUG
+	fprintf(stderr, "xc_scroll_view_down(): xc_scroll_view_counter == %d\n",
+			xc_scroll_view_counter);
+#endif
 	xc_bind_view(xc_super_buffer.cursor - xc_scroll_view_counter);
 	return 1;
 }
@@ -281,8 +298,8 @@ void xc_store_cursor_position(const char *last_modified_row)
 
 /* TRACE */
 #ifdef DEBUG
-	fprintf(stderr, "%s():\tcursor == %u\n",
-			__FUNCTION__, xc_super_buffer.cursor);
+	fprintf(stderr, "xc_store_cursor_position(): xc_super_buffer.cursor == %u\n"
+			, xc_super_buffer.cursor);
 #endif
 }
 
