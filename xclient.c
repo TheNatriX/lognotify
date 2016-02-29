@@ -56,7 +56,7 @@ static	struct	{
 }	xc_window_view;
 
 
-static int xc_scroll_view_counter;	/*	used to scroll window text	*/
+static int xc_scroll_view_counter;	/* used to scroll window text	*/
 
 
 /*
@@ -146,7 +146,7 @@ int xc_init(void)
 }
 
 /* TODO: reimplement this function */
-int draw_window(int x, int y, int rows)
+static int draw_window(int x, int y, int rows)
 {
 	if (w) {
 		XClearWindow(display, w);
@@ -172,7 +172,7 @@ int draw_window(int x, int y, int rows)
 	return 0;
 }
 
-void xc_write_on_window(const int rows)
+static void xc_write_on_window(const int rows)
 {
 	/* just a TEST; need implemenntation */
 	int c;
@@ -183,7 +183,7 @@ void xc_write_on_window(const int rows)
 	}
 }
 
-void xc_scroll_buffer_up(unsigned int lines)
+static void xc_scroll_buffer_up(unsigned int lines)
 {
 	/*
 	 * instead of copying characters to upper lines
@@ -202,7 +202,7 @@ void xc_scroll_buffer_up(unsigned int lines)
 	}
 }
 
-void xc_bind_view(int buffer_row)
+static void xc_bind_view(int buffer_row)
 {
 	int row;
 	if (buffer_row >= xc_window_view.rows)
@@ -212,7 +212,7 @@ void xc_bind_view(int buffer_row)
 		xc_window_view.pointers[row] = xc_super_buffer.content[buffer_row];
 }
 
-int xc_scroll_view_up(void)
+static int xc_scroll_view_up(void)
 {
 	if(xc_super_buffer.cursor <= xc_window_view.rows)
 		return 0;
@@ -236,7 +236,7 @@ int xc_scroll_view_up(void)
 	return 1;
 }
 
-int xc_scroll_view_down(void)
+static int xc_scroll_view_down(void)
 {
 	xc_scroll_view_counter--;
 	if (xc_scroll_view_counter > argv_history) {
@@ -256,7 +256,7 @@ int xc_scroll_view_down(void)
 	return 1;
 }
 
-unsigned int xc_count_rows(const char *content)
+static unsigned int xc_count_rows(const char *content)
 {
 	unsigned int rows = 0;
 	register unsigned int cols = 0;
@@ -284,7 +284,7 @@ unsigned int xc_count_rows(const char *content)
 	return rows;
 }
 
-void xc_store_cursor_position(const char *last_modified_row)
+static void xc_store_cursor_position(const char *last_modified_row)
 {
 	register unsigned int pos = 0;
 	char *row_ptr = xc_super_buffer.content[pos];
