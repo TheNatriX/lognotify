@@ -8,18 +8,19 @@
 #include <stdio.h>
 #include "lognotify.h"
 
-/* TODO: these should be replaced by global vars editable from cmd line */
-#define TEXT_ROW_PXL		12
-#define TEXT_PADDING_X_PXL	2
-#define TEXT_COLOR		0xfffffff
-#define WINDOW_COLOR		0
-#define BORDER_COLOR		0xff
-#define BORDER_SIZE_PXL		1
-int argv_max_rows =0;
-int argv_history = 100;
-#define TEXT_Y_PADDING_PXL	5
-#define TEXT_X_PADDING_PXL	5
 
+extern 	int argv_max_cols;
+extern	int argv_max_rows;
+extern	int argv_history;
+extern	int argv_text_padding_px;
+extern	int argv_text_color;
+extern	int argv_window_color;
+extern	int argv_x_position;
+extern	int argv_y_position;
+extern	int argv_row_spacer_px;
+extern	int argv_border_px;
+extern	int argv_border_color;
+extern	int argv_verbose;
 
 
 /*	Display related stuff		*/
@@ -34,6 +35,7 @@ static	XSetWindowAttributes	wattr;	/*	attr. for our window	*/
 static	Window			w;	/*	our window handle	*/
 static	GC			gc;	/*	gc for our window	*/
 static	Window			rootw;	/*	the root window		*/
+static	XFontStruct		*font_metrics;
 
 
 /*	Super Buffer contains all content to be displayed, it's size	*/
@@ -67,7 +69,6 @@ static int xc_scroll_view_counter;	/* used to scroll window text	*/
 int xc_init(void)
 {
 	int i;
-	XFontStruct *fnt_struct;
 
 	display = XOpenDisplay(NULL);
 	if (!display) {
@@ -75,41 +76,35 @@ int xc_init(void)
 		return 0;
 	}
 	screen_num = DefaultScreen(display);
-
 	resolution_y = XDisplayHeight(display, screen_num);
 	resolution_x = XDisplayWidth(display, screen_num);
-
-	/* get metrics for default font */
 	gc = DefaultGC(display, screen_num);
-	fnt_struct = XQueryFont(display, XGContextFromGC(gc));
-	if (!fnt_struct) {
+	font_metrics = XQueryFont(display, XGContextFromGC(gc));
+	if (!font_metrics) {
 		fprintf(stderr, "Can't query font metrics.\n");
 		XCloseDisplay(display);
 		return 0;
 	}
-
-	/*
-	 * calculate window rows.
-	 * if max rows was not specified, use half of vertical resolution.
-	 */
+	/* if max rows was not specified, use half of vertical resolution */
 	if (!argv_max_rows) {
 		xc_window_view.rows = (resolution_y / 2
-			- 2 * BORDER_SIZE_PXL - 2 * TEXT_Y_PADDING_PXL)
-			/ (fnt_struct->ascent + fnt_struct->descent);
+			- 2 * argv_border_px - 2 * argv_text_padding_px)
+			/ (font_metrics->ascent + font_metrics->descent +
+			argv_row_spacer_px);
 
 	} else {
 		xc_window_view.rows = argv_max_rows;
-		/* TODO check argv_max_rows vs resolution boundaries */
 	}
-	/* calculate columns */
-	xc_window_view.cols =
-		(resolution_x - 2 * BORDER_SIZE_PXL - 2 * TEXT_X_PADDING_PXL)
-		/ fnt_struct->max_bounds.width;
-	XFreeFontInfo(NULL, fnt_struct, 0);
+	if (!argv_max_cols) {
+		xc_window_view.cols =
+			(resolution_x - 2 * argv_border_px - 2 *
+			argv_text_padding_px) / font_metrics->max_bounds.width;
+	} else {
+		xc_window_view.cols = argv_max_cols;
+	}
 	/* Super Buffer size */
 	xc_super_buffer.rows = xc_window_view.rows + argv_history;
 	xc_super_buffer.cols = xc_window_view.cols;
-	/* now allocate memory for Super Buffer */
 	xc_super_buffer.content = malloc(sizeof(char*) * xc_super_buffer.rows);
 	if (xc_super_buffer.content == NULL) {
 		perror("Can't allocate memory");
@@ -126,50 +121,39 @@ int xc_init(void)
 		}
 		memset(xc_super_buffer.content[i], 0x00, xc_super_buffer.cols + 1);
 	}
-	/* allocate memory for window pointers */
 	xc_window_view.pointers = malloc(sizeof(char*) * xc_window_view.rows);
 	if (xc_window_view.pointers == NULL) {
 		XCloseDisplay(display);
 		return 0;
 	}
-	/* buffer is empty now */
 	xc_super_buffer.cursor = 0;
-
 	/*
 	 * setting override_redirect to true to override handlig of
 	 * window manager over our window.
 	 */
 	wattr.override_redirect = True;
-
 	rootw = RootWindow(display, screen_num);
 	return ConnectionNumber(display);
 }
 
-/* TODO: reimplement this function */
-static int draw_window(int x, int y, int rows)
+static void xc_draw_window(int rows)
 {
 	if (w) {
 		XClearWindow(display, w);
-		return 0;
+		return;
 	}
-	w = XCreateSimpleWindow(display, rootw, x, y,
-		resolution_x - BORDER_SIZE_PXL * 2,
-		rows * TEXT_ROW_PXL + BORDER_SIZE_PXL * 4,
-		BORDER_SIZE_PXL, 0xffffffff, 0);
+	w = XCreateSimpleWindow(display, rootw,
+		argv_x_position, argv_y_position,
+		resolution_x - argv_border_px * 2,
+		rows * (font_metrics->ascent + font_metrics->descent +
+		argv_row_spacer_px) + argv_border_px * 2 + argv_text_padding_px,
+		argv_border_px, argv_border_color, argv_window_color);
 
 	XChangeWindowAttributes(display, w, CWOverrideRedirect, &wattr);
-/*
-	w = XCreateWindow( display, rootw, x, y,
-		resolution_x - BORDER_SIZE_PXL * 2,
-		TEXT_ROW_PXL, BORDER_SIZE_PXL, CopyFromParent, InputOutput,
-		CopyFromParent, CWOverrideRedirect, &wattr );
-*/	
 	gc = XCreateGC(display, w, 0, NULL);
 	XSetForeground(display, gc, WhitePixel(display, screen_num));
 	XSelectInput(display, w, ButtonPressMask);
 	XMapWindow(display, w);
-
-	return 0;
 }
 
 static void xc_write_on_window(const int rows)
@@ -177,7 +161,9 @@ static void xc_write_on_window(const int rows)
 	/* just a TEST; need implemenntation */
 	int c;
 	for (c = 0; c < rows; c++) {
-		XDrawString(display, w, gc, 1, (c + 1) * TEXT_ROW_PXL,
+		XDrawString(display, w, gc, argv_border_px + argv_text_padding_px,
+				(c + 1) * (font_metrics->ascent +
+					font_metrics->descent + argv_row_spacer_px),
 				xc_window_view.pointers[c],
 				strlen(xc_window_view.pointers[c]));
 	}
@@ -189,7 +175,6 @@ static void xc_scroll_buffer_up(unsigned int lines)
 	 * instead of copying characters to upper lines
 	 * its better to move only line pointers in a circular way
 	 */
-
 	int c;
 	char *p;
 	register int x;
@@ -280,7 +265,6 @@ static unsigned int xc_count_rows(const char *content)
 	/* maybe last line doesn't have '\n' */
 	if (*(content - 1) != '\n')
 		rows++;
-
 	return rows;
 }
 
@@ -288,12 +272,10 @@ static void xc_store_cursor_position(const char *last_modified_row)
 {
 	register unsigned int pos = 0;
 	char *row_ptr = xc_super_buffer.content[pos];
-	/* count rows between first and last */
 	while (row_ptr != last_modified_row) {
 		pos++;
 		row_ptr = xc_super_buffer.content[pos];
 	}
-	/* store rows count */
 	xc_super_buffer.cursor = pos;
 
 /* TRACE */
@@ -347,7 +329,7 @@ void xc_dispatch_to_screen(const char *content)
 	xc_store_cursor_position(xc_super_buffer.content[row]);
 	xc_bind_view(xc_super_buffer.cursor);
 	xc_scroll_view_counter = 0;
-	draw_window(0, 0, xc_window_view.rows);
+	xc_draw_window(xc_window_view.rows);
 	xc_write_on_window(xc_window_view.rows);
 	XFlush(display);
 }

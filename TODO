@@ -3,4 +3,5 @@ O	Check if given files are files. Directories are not supported.
 O	Add a time buffer.
 O	Window timeout.
 O	logfile-struct should contain file fd, last modified time.
+O	Something like grep -v
 
